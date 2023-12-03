@@ -1,9 +1,8 @@
 import cv2
 import os
-import pandas as pd
+#import pandas as pd
 import Localization
 import Recognize
-
 
 def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
@@ -21,11 +20,11 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
-    frame = None
+    frame = cv2.imread('resources/single_car_plate.jpg')
 
     # TODO: Implement actual algorithms for Localizing Plates
-    Localization.plate_detection(frame)
-
+    plates = Localization.plate_detection(frame)
+    print(len(plates))
     # TODO: Implement actual algorithms for Recognizing Characters
 
     output = open(save_path, "w")

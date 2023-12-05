@@ -21,9 +21,8 @@ def plate_detection(image):
 
     # TODO: Replace the below lines with your code.
     masked = masked_image(image, 15,30,100,200,100,255)
-    #plt.imshow(masked)
-    #plt.show()
-    return crop_plates(masked)
+    plates, boxes = crop_plates(masked)
+    return plates
 
 def masked_image(image, minH, maxH, minS, maxS, minV, maxV):
     """
@@ -52,9 +51,9 @@ def crop_plates(masked):
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     binary = np.copy(gray)
     binary[gray!=0] = 255
-    images = []
     i = 0
     images = []
+    boxes = []
     while i < binary.shape[0]:
         if len(images) == 2:
             break
@@ -73,14 +72,36 @@ def crop_plates(masked):
 
                 if a-old_a >= 90:
                     images.append(gray[old_i:i, old_a:a])
+                    boxes.append(BoundingBox(old_a, old_i, a-1, i-1))
                     binary[old_i:i, old_a:a] = 0
                     i = old_i + 1
                     j = 0
             j += 1
         i += 1
-    print(len(images))
-    plotImage(images[1], "Image", cmapType="gray")
-    return images
+    #plotImage(images[1], "Image", cmapType="gray")
+    return images, boxes
+
+class BoundingBox:
+    def __init__(self, x1, y1, x2, y2):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+
+    def intersection_over_union(self, other):
+        """
+        Returns the area of the IoU of this bounding box with another bounding box
+        """
+        x_a = max(self.x1, other.x1)
+        y_a = max(self.y1, other.y1)
+        x_b = min(self.x2, other.x2)
+        y_b = min(self.y2, other.y2)
+        
+        intersection = (x_b-x_a).clamp(0)*(y_b-y_a).clamp(0)
+        box1 = abs((self.x2-self.x1)*(self.y2-self.y1))
+        box2 = abs((other.x2-other.x1)*(other.y2-other.y1))
+
+        return intersection/(box1+box2-intersection+1e-6)
 
 # Displays a given RGB image using matplotlib.pyplot
 def plotImage(img, title, cmapType=None):

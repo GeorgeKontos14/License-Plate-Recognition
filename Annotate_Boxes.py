@@ -32,7 +32,7 @@ def on_click(event):
     ys.append(round(event.ydata))
 
 # Script for category I
-"""count = 1
+count = 1
 path = "dataset/TrainingSet/Categorie I/"
 
 for filename in os.scandir(path):
@@ -46,11 +46,11 @@ for filename in os.scandir(path):
         max_y = max(ys)
         min_x = min(xs)
         min_y = min(ys)
-        l = [filename.name, 1, max_y, min_y, min_x, max_y]
+        l = [filename.name, 1, max_y, min_y, min_x, max_x]
         with open('dataset/bounding_boxes.csv', 'a') as f_object:
             writer_object = writer(f_object)
             writer_object.writerow(l)
-            f_object.close()"""
+            f_object.close()
 
 # Script for category II
 """count = 1
@@ -78,7 +78,7 @@ for filename in os.scandir(path):
             no += 1"""
 
 # Script for category III
-count = 1
+"""count = 1
 path = "dataset/TrainingSet/Categorie III"
 
 
@@ -101,4 +101,4 @@ for filename in os.scandir(path):
                 writer_object = writer(f_object)
                 writer_object.writerow(l)
                 f_object.close()
-            c += 1
+            c += 1"""

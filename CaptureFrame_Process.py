@@ -4,7 +4,6 @@ import pandas as pd
 import Localization
 import Recognize
 
-
 def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
     In this file, you will define your own CaptureFrame_Process funtion. In this function,
@@ -21,11 +20,19 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
-    frame = None
+    frame = cv2.imread('dataset/Frames/frame_2_plates.png')
+    """cap = cv2.VideoCapture(file_path)
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if ret == True:
+            cv2.imshow('Frame', frame)
+        else:
+            break
+    cap.release()
+    cv2.destroyAllWindows()"""
 
     # TODO: Implement actual algorithms for Localizing Plates
-    Localization.plate_detection(frame)
-
+    #plates = Localization.plate_detection(frame)
     # TODO: Implement actual algorithms for Recognizing Characters
 
     output = open(save_path, "w")

@@ -21,9 +21,15 @@ def plate_detection(image):
 
     # TODO: Replace the below lines with your code.
     masked = masked_image(image, 15,30,100,200,100,255)
-    #plt.imshow(masked)
-    #plt.show()
-    return crop_plates(masked, 30)
+    plates, boxes = crop_plates(masked)
+    copied = np.copy(image)
+    for box in boxes:
+        copied[box.y1, box.x1:(box.x2+1)] = [0,255,0]
+        copied[box.y2, box.x1:(box.x2+1)] = [0,255,0]
+        copied[box.y1:(box.y2+1), box.x1] = [0,255,0]
+        copied[box.y1:(box.y2+1), box.x2] = [0,255,0]
+    #plotImage(cv2.cvtColor(copied, cv2.COLOR_BGR2RGB), "Annotated")
+    return plates
 
 def masked_image(image, minH, maxH, minS, maxS, minV, maxV):
     """
@@ -43,7 +49,7 @@ def masked_image(image, minH, maxH, minS, maxS, minV, maxV):
 
     return masked
 
-def crop_plates(masked, threshold):
+def crop_plates(masked):
     """
     This function, given a masked image, crops the parts of the image that contain license plates.
     It returns a list of the cropped images.
@@ -52,96 +58,57 @@ def crop_plates(masked, threshold):
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     binary = np.copy(gray)
     binary[gray!=0] = 255
+    i = 0
     images = []
-    """ 
-    In order to identify where the plates are, we create a 3D histogram of the image, in terms of 
-    x and y. We then find the bins(and their neighborhoods) that return the two maximum amount of
-    ones, and then test whether they have enough ones to be considered a license plate.
-    """
+    boxes = []
+    while i < binary.shape[0]:
+        if len(images) == 2:
+            break
+        j = 0
+        while j < binary.shape[1]:
+            if binary[i][j] != 0:
+                old_i = i
+                while np.count_nonzero(binary[i]) != 0:
+                    i += 1
+                a = 0
+                while np.count_nonzero(binary[old_i:i, a]) == 0:
+                    a += 1
+                old_a = a
+                while np.count_nonzero(binary[old_i:i, a]) != 0:
+                    a += 1
 
-    hist = histogram(binary)
-    highest= np.unravel_index(np.argmax(hist), hist.shape)
-    oldRight = left = highest[0]-1
-    oldLeft = right = highest[0]+1
-    oldDown = up = highest[1]-1
-    oldUp = down = highest[1]+1
-    plate = binary[15*highest[0]:15*(highest[0]+1), 15*highest[1]:15*(highest[1]+1)]
+                if a-old_a >= 90:
+                    images.append(gray[old_i:i, old_a:a])
+                    boxes.append(BoundingBox(old_a, old_i, a-1, i-1))
+                    binary[old_i:i, old_a:a] = 0
+                    i = old_i + 1
+                    j = 0
+            j += 1
+        i += 1
+    #plotImage(images[1], "Image", cmapType="gray")
+    return images, boxes
 
-    while oldRight != right or oldLeft != left or oldDown != down or oldUp != up:
-        plate = binary[15*left:15*(right+2), 15*up:15*(down+2)]
-        oldRight = right
-        oldLeft = left
-        oldDown = down
-        oldUp = up
-        if np.count_nonzero(hist[left-1, highest[1]]) >= 2 or np.count_nonzero(hist[left-2, highest[1]]) >= 2 or np.count_nonzero(hist[left-3, highest[1]]) >= 2:
-            left -= 1
-        if np.count_nonzero(hist[right+1, highest[1]]) >= 2 or np.count_nonzero(hist[right+2, highest[1]]) >= 2 or np.count_nonzero(hist[right+3, highest[1]]) >= 2:
-            right += 1
-        if np.count_nonzero(hist[highest[0], up-1]) >= 2 or np.count_nonzero(hist[highest[0], up-2]) >= 2 or np.count_nonzero(hist[highest[0], up-3]) >= 2:
-            up -= 1
-        if np.count_nonzero(hist[highest[0], down+1]) >= 2 or np.count_nonzero(hist[highest[0], down+2]) >= 2 or np.count_nonzero(hist[highest[0], down+3]) >= 2:
-            down += 1
-    if np.count_nonzero(plate) > threshold:
-        x_min = plate.shape[0]
-        y_min = plate.shape[1]
-        x_max = 0
-        y_max = 0
-        for i in range(plate.shape[0]):
-            for j in range(plate.shape[1]):
-                if plate[i][j] != 0:
-                    x_min = min(x_min, i)
-                    y_min = min(y_min, j)
-                    x_max = max(x_max, i)
-                    y_max = max(y_max, j)
-        images.append(plate[x_min:(x_max+1), y_min:(y_max+1)])
-    hist[left:(right+2), up:(down+2)] = 0
+class BoundingBox:
+    def __init__(self, x1, y1, x2, y2):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
 
-    # Repeat for a second plate
-    highest = np.unravel_index(np.argmax(hist), hist.shape)
-    oldRight = left = highest[0]-1
-    oldLeft = right = highest[0]+1
-    oldDown = up = highest[1]-1
-    oldUp = down = highest[1]+1
-    plate = binary[15*highest[0]:15*(highest[0]+1), 15*highest[1]:15*(highest[1]+1)]
+    def intersection_over_union(self, other):
+        """
+        Returns the area of the IoU of this bounding box with another bounding box
+        """
+        x_a = max(self.x1, other.x1)
+        y_a = max(self.y1, other.y1)
+        x_b = min(self.x2, other.x2)
+        y_b = min(self.y2, other.y2)
+        
+        intersection = (x_b-x_a).clamp(0)*(y_b-y_a).clamp(0)
+        box1 = abs((self.x2-self.x1)*(self.y2-self.y1))
+        box2 = abs((other.x2-other.x1)*(other.y2-other.y1))
 
-    while oldRight != right or oldLeft != left or oldDown != down or oldUp != up:
-        plate = binary[15*left:15*(right+2), 15*up:15*(down+2)]
-        oldRight = right
-        oldLeft = left
-        oldDown = down
-        oldUp = up
-        if np.count_nonzero(hist[left-1, highest[1]]) >= 2 or np.count_nonzero(hist[left-2, highest[1]]) >= 2 or np.count_nonzero(hist[left-3, highest[1]]) >= 2:
-            left -= 1
-        if np.count_nonzero(hist[right+1, highest[1]]) >= 2 or np.count_nonzero(hist[right+2, highest[1]]) >= 2 or np.count_nonzero(hist[right+3, highest[1]]) >= 2:
-            right += 1
-        if np.count_nonzero(hist[highest[0], up-1]) >= 2 or np.count_nonzero(hist[highest[0], up-2]) >= 2 or np.count_nonzero(hist[highest[0], up-3]) >= 2:
-            up -= 1
-        if np.count_nonzero(hist[highest[0], down+1]) >= 2 or np.count_nonzero(hist[highest[0], down+2]) >= 2 or np.count_nonzero(hist[highest[0], down+3]) >= 2:
-            down += 1
-    if np.count_nonzero(plate) > threshold:
-        x_min = plate.shape[0]
-        y_min = plate.shape[1]
-        x_max = 0
-        y_max = 0
-        for i in range(plate.shape[0]):
-            for j in range(plate.shape[1]):
-                if plate[i][j] != 0:
-                    x_min = min(x_min, i)
-                    y_min = min(y_min, j)
-                    x_max = max(x_max, i)
-                    y_max = max(y_max, j)
-        images.append(plate[x_min:(x_max+1), y_min:(y_max+1)])
-    return images
-
-def histogram(binary):
-    binX = int(binary.shape[0]/15)
-    binY = int(binary.shape[1]/15)
-    res = np.zeros((binX, binY))
-    for i in range(binX):
-        for j in range(binY):
-            res[i][j] = np.count_nonzero(binary[15*i:min(15*(i+1), binary.shape[0]), 15*j:min(15*(j+1), binary.shape[1])])
-
-    return res 
+        return intersection/(box1+box2-intersection+1e-6)
 
 # Displays a given RGB image using matplotlib.pyplot
 def plotImage(img, title, cmapType=None):

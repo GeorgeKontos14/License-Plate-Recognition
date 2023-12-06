@@ -22,6 +22,13 @@ def plate_detection(image):
     # TODO: Replace the below lines with your code.
     masked = masked_image(image, 15,30,100,200,100,255)
     plates, boxes = crop_plates(masked)
+    copied = np.copy(image)
+    for box in boxes:
+        copied[box.y1, box.x1:(box.x2+1)] = [0,255,0]
+        copied[box.y2, box.x1:(box.x2+1)] = [0,255,0]
+        copied[box.y1:(box.y2+1), box.x1] = [0,255,0]
+        copied[box.y1:(box.y2+1), box.x2] = [0,255,0]
+    #plotImage(cv2.cvtColor(copied, cv2.COLOR_BGR2RGB), "Annotated")
     return plates
 
 def masked_image(image, minH, maxH, minS, maxS, minV, maxV):

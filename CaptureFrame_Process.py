@@ -21,7 +21,7 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
     frame = cv2.imread('dataset/Frames/frame_2_plates.png')
-    cap = cv2.VideoCapture(file_path)
+    """cap = cv2.VideoCapture(file_path)
     while cap.isOpened():
         ret, frame = cap.read()
         if ret == True:
@@ -29,7 +29,7 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
         else:
             break
     cap.release()
-    cv2.destroyAllWindows()
+    cv2.destroyAllWindows()"""
 
     # TODO: Implement actual algorithms for Localizing Plates
     #plates = Localization.plate_detection(frame)

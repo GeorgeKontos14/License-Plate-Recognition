@@ -20,13 +20,9 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
-    """path = "dataset/Frames/Category_III"
-    for filename in os.scandir(path):
-        if filename.is_file():
-            print(filename.path)
-            frame = cv2.imread(filename.path)
-            plates = Localization.plate_detection(frame)"""
-    frame = cv2.imread("dataset/Frames/Category_III/plate2.jpg")
+    path = "dataset/Frames/Category_III"
+    #iterate_dir(path)
+    frame = cv2.imread("dataset/Frames/Category_II/plate4.jpg")
     plates = Localization.plate_detection(frame)
     """cap = cv2.VideoCapture(file_path)
     while cap.isOpened():
@@ -51,3 +47,11 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     # TODO: REMOVE THESE (above) and write the actual values in `output`
 
     pass
+
+def iterate_dir(path):
+    for filename in os.scandir(path):
+        if filename.is_file():
+            print(filename.path)
+            frame = cv2.imread(filename.path)
+            plates = Localization.plate_detection(frame)
+    return plates

@@ -1,8 +1,10 @@
 import cv2
 import os
+import numpy as np
 import pandas as pd
 import Localization
 import Recognize
+import Helpers
 
 def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
@@ -20,10 +22,24 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
-    path = "dataset/Frames/Category_III"
-    #iterate_dir(path)
-    frame = cv2.imread("dataset/Frames/Category_II/plate4.jpg")
-    plates = Localization.plate_detection(frame)
+    """path = "dataset/Frames/Category_I"
+    iterate_dir(path)"""
+    frame = cv2.imread("dataset/binPlates/Category_I/plate14.jpg")
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame[frame >= 125] = 255
+    frame[frame < 125] = 0
+    #Helpers.plotImage(frame, cmapType="gray")
+    characters, dashes = Recognize.segment(frame, binary=True)
+    for char in characters:
+        Helpers.plotImage(char, cmapType="gray")
+    print(len(characters))
+    print(dashes)
+    #plates = Localization.plate_detection(frame)
+    #for plate in plates:
+    #    chars, dashes = Recognize.segment(plate)
+    #    for char in chars:
+    #        Helpers.plotImage(char, cmapType="gray")
+    #    print(dashes)
     """cap = cv2.VideoCapture(file_path)
     while cap.isOpened():
         ret, frame = cap.read()
@@ -51,7 +67,10 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
 def iterate_dir(path):
     for filename in os.scandir(path):
         if filename.is_file():
-            print(filename.path)
+            #print(filename.path)
             frame = cv2.imread(filename.path)
             plates = Localization.plate_detection(frame)
+            for plate in plates:
+                chars, dashes = Recognize.segment(plate, 'dataset/binPlates/Category_II/'+filename.name)
+                print(len(chars))
     return plates

@@ -22,6 +22,54 @@ def close(image):
     res = cv2.erode(res, s2)
     return res
 
+def open(image):
+    s1 = np.ones((5,5))
+    s2 = np.ones((3,3))
+    s3 = np.ones((5,2))
+    #res = cv2.erode(image, s1)
+    #res = cv2.erode(res, s1)
+    res = cv2.erode(image, s2)
+    res = cv2.dilate(res, s2)
+    return res
+
+def isodata_thresholding(image, epsilon = 2):
+    hist = np.array(cv2.calcHist([image], [0], None, [256], [0, 256])).flatten()
+    gmin = 0
+    gmax = 255
+    while hist[gmin] == 0:
+        gmin += 1
+    while hist[gmax] == 0:
+        gmax -= 1
+    tau = int((gmin+gmax)/2)
+    old_tau = -2*epsilon
+    gs = np.arange(len(hist))
+    mult = gs*hist
+    while(abs(tau-old_tau) >= epsilon):
+        m1 = np.sum(mult[gmin:tau+1])/np.sum(hist[gmin:tau+1])
+        m2 = np.sum(mult[tau:gmax+1])/np.sum(hist[tau:gmax+1])
+        old_tau = tau
+        tau = int((m1+m2)/2)
+    background = np.zeros(image.shape)
+    foreground = np.zeros(image.shape)
+    background[image<tau] = 255
+    foreground[image>=tau] = 255
+    return background, foreground
+
+def adaptive_thresholding(image, size, c):
+    # Create empty lower/ background and upper/foreground matrices
+    background = np.zeros(image.shape)
+    foreground = np.zeros(image.shape)
+    for x in range(image.shape[0]):
+        for y in range(image.shape[1]):
+            window = image[max(x-size, 0):min(x+size+1, image.shape[0]), max(y-size, 0):min(y+size+1, image.shape[1])]
+            mean = np.mean(window)
+            if image[x][y] >= mean-c:
+                foreground[x][y] = 255
+            else:
+                background[x][y] = 255
+    return background, foreground
+
+
 def drawBoxes(boxes, image, channel="green"): 
     copied = np.copy(image)
     arr = []

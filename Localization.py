@@ -20,6 +20,7 @@ def plate_detection(image):
     """
 
     # TODO: Replace the below lines with your code.
+    Helpers.plotImage(image)
     #image = cv2.GaussianBlur(image, (5,5), 0)
     #masked = masked_image(image, 10,31,112,255,56,255) #75, 85, 70
     #masked = masked_image(image, 12, 29, 128, 254, 78, 251) #78, 100, 80
@@ -28,8 +29,8 @@ def plate_detection(image):
     #denoise = close(masked)
     plates, boxes = crop_plates(masked, image)
     Helpers.drawBoxes(boxes, image)
-    for plate in plates:
-        Helpers.plotImage(plate, "")
+    #for plate in plates:
+    #    Helpers.plotImage(plate, "")
     return plates
 
 def masked_image(image, minH, maxH, minS, maxS, minV, maxV):

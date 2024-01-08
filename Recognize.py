@@ -37,18 +37,23 @@ def segment(plate, out=None, binary = False):
 	
 	if (out):
 		cv2.imwrite(out, cleared)
-	# TODO: Noise reduction, get rid of white on the sides, top and bottom of the plate
-	#To be implemented
+	
+	height, length = cleared.shape
+	top = int(0.15*height)
+	bottom = int(0.85*height)
+	left = int(0.05*length)
+	right = int(0.95*length)
+	cleared = cleared[top:bottom, left:right]
+	Helpers.plotImage(cleared, cmapType="gray")
 	middle = int(plate.shape[0]/2)
-	upper = middle+int(0.15*cleared.shape[0])
-	lower = middle-int(0.15*cleared.shape[0])
+	upper = middle+int(0.25*cleared.shape[0])
+	lower = middle-int(0.25*cleared.shape[0])
 	characters = []
-	dashes = []
 	i = 0
 	while i < cleared.shape[1]: # and len(characters) < 6:
 		column = cleared[:, i]
 		# Discard columns without enough white pixels
-		if np.count_nonzero(column) <= 5:
+		if np.count_nonzero(column) <= 8:
 			i += 1
 			continue
 		# Find the area of the continuous white pixels
@@ -65,14 +70,13 @@ def segment(plate, out=None, binary = False):
 		# Dots appear in the beginning of the plates
 		# due to shadows. We check by examining how many 
 		# of the white pixels are near the middle.
-		if np.count_nonzero(letter[lower:upper, :]) >= 0.7*whites: #and can_be_dash(len(characters), len(dashes)):
-			dashes.append(len(characters))
+		if np.count_nonzero(letter[lower:upper, :]) >= 0.8*whites:
+			continue
 		else:
-			#print('added')
 			characters.append(letter)
 		i += 1
 
-	return characters, dashes
+	return characters
 
 
 def can_be_dash(chars_length, dashes_length):

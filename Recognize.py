@@ -46,8 +46,8 @@ def segment(plate, out=None, binary = False):
 	cleared = cleared[top:bottom, left:right]
 	Helpers.plotImage(cleared, cmapType="gray")
 	middle = int(plate.shape[0]/2)
-	upper = middle+int(0.25*cleared.shape[0])
-	lower = middle-int(0.25*cleared.shape[0])
+	upper = middle+int(0.15*cleared.shape[0])
+	lower = middle-int(0.15*cleared.shape[0])
 	characters = []
 	i = 0
 	while i < cleared.shape[1]: # and len(characters) < 6:
@@ -70,7 +70,7 @@ def segment(plate, out=None, binary = False):
 		# Dots appear in the beginning of the plates
 		# due to shadows. We check by examining how many 
 		# of the white pixels are near the middle.
-		if np.count_nonzero(letter[lower:upper, :]) >= 0.8*whites:
+		if is_dash(letter):
 			continue
 		else:
 			characters.append(letter)
@@ -78,6 +78,14 @@ def segment(plate, out=None, binary = False):
 
 	return characters
 
+def is_dash(letter):
+	whites = np.count_nonzero(letter)
+	middle = int(letter.shape[0]/2)
+	upper_mid = middle+int(0.1*letter.shape[0])
+	lower_mid = middle-int(0.1*letter.shape[0])
+	upper = middle+int(0.2*letter.shape[0])
+	lower = middle-int(0.2*letter.shape[0])
+	return np.count_nonzero(letter[lower:middle]) > 0.7*whites or np.count_nonzero(letter[lower_mid:upper_mid]) > 0.7*whites or np.count_nonzero(letter[middle:upper]) > 0.7*whites
 
 def can_be_dash(chars_length, dashes_length):
 	"""

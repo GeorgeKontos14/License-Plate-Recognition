@@ -126,28 +126,3 @@ def merge_or_split(characters, limits, plate):
 			res.append(char)
 		i += 1
 	return res
-
-			
-
-def can_be_dash(chars_length, dashes_length):
-	"""
-	Returns true if it is possible that the next letter
-	detected in the plate can be a dash, according 
-	to all the possible formats for the dutch license
-	plates.
-	"""
-	if dashes_length >= 2:
-		return False
-	if chars_length == 2 and dashes_length == 0:
-		return True
-	if chars_length == 1 and dashes_length == 0:
-		return True
-	if chars_length == 3 and dashes_length == 0:
-		return True
-	if chars_length == 4 and dashes_length == 1:
-		return True
-	if chars_length == 5 and dashes_length == 1:
-		return True
-	if chars_length == 3 and dashes_length == 1:
-		return True
-	return False

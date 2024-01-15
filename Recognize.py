@@ -39,15 +39,11 @@ def segment(plate, out=None, binary = False):
 		cv2.imwrite(out, cleared)
 		return
 	
-	height, length = cleared.shape
-	top = int(0.15*height)
-	bottom = int(0.85*height)
-	left = int(0.05*length)
-	right = int(0.95*length)
-	cleared = cleared[top:bottom, left:right]
+	cleared = clear_top_bottom(cleared)
 	Helpers.plotImage(cleared, cmapType="gray")
 	characters = []
 	limits = []
+	dashes = []
 	i = 0
 	while i < cleared.shape[1]:
 		column = cleared[:, i]
@@ -73,13 +69,16 @@ def segment(plate, out=None, binary = False):
 		# due to shadows. We check by examining how many 
 		# of the white pixels are near the middle.
 		if is_dash(letter):
+			if can_be_dash(len(characters), len(dashes)):
+				dashes.append(len(characters))
 			continue
 		else:
 			if letter.shape[1] >= 3:
 				characters.append(letter)
 				limits.append((j, i))
 		i += 1
-	return merge_or_split(characters, limits, cleared)
+	fixed = merge_or_split(characters, limits, cleared)
+
 
 def is_dash(letter):
 	whites = np.count_nonzero(letter)
@@ -92,16 +91,19 @@ def is_dash(letter):
 
 def clear_top_bottom(binary):
 	height, length = binary.shape
-	top_white = i = 0
-	bottom_white = j = height-1
+	top_black = i = 0
+	bottom_black = j = height-1
+	left = int(0.05*length)
+	right = int(0.95*length)
+	result = binary[:, left:right]
 	while i < j:
-		if np.count_nonzero(binary[i]) > 0.9*length:
-			top_white = i
-		if np.count_nonzero(binary[j]) > 0.9*length:
-			bottom_white = j
+		if np.count_nonzero(result[i]) < 0.05*length:
+			top_black = i
+		if np.count_nonzero(result[j]) < 0.05*length:
+			bottom_black = j
 		i += 1
 		j -= 1
-	return binary[top_white:bottom_white]
+	return result[top_black:bottom_black]
 
 def merge_or_split(characters, limits, plate):
 	avg = 0
@@ -126,3 +128,26 @@ def merge_or_split(characters, limits, plate):
 			res.append(char)
 		i += 1
 	return res
+
+def can_be_dash(chars_length, dashes_length):
+	"""
+	Returns true if it is possible that the next letter
+	detected in the plate can be a dash, according 
+	to all the possible formats for the dutch license
+	plates.
+	"""
+	if dashes_length >= 2:
+		return False
+	if chars_length == 2 and dashes_length == 0:
+		return True
+	if chars_length == 1 and dashes_length == 0:
+		return True
+	if chars_length == 3 and dashes_length == 0:
+		return True
+	if chars_length == 4 and dashes_length == 1:
+		return True
+	if chars_length == 5 and dashes_length == 1:
+		return True
+	if chars_length == 3 and dashes_length == 1:
+		return True
+	return False

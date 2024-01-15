@@ -81,7 +81,7 @@ def iterate_dir(path):
             for plate in plates:
                 rotated = plate_rotation.rotation_pipeline(plate)
                 #Helpers.plotImage(rotated)
-                chars = Recognize.segment(rotated)
+                chars, dashes = Recognize.segment(rotated)
                 for char in chars:
                     Helpers.plotImage(char, cmapType="gray")
     return plates

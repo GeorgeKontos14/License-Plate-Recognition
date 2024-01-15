@@ -78,6 +78,7 @@ def segment(plate, out=None, binary = False):
 				limits.append((j, i))
 		i += 1
 	fixed = merge_or_split(characters, limits, cleared)
+	return fixed, dashes
 
 
 def is_dash(letter):

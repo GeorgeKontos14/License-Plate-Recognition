@@ -1,9 +1,13 @@
 import cv2
 import numpy as np
 import os
-import Helpers
 
-def segment_and_recognize(plate_images):
+import Helpers
+from kd_tree import KDTree
+from pre_processing_data import put_margin
+from character_recognition import give_label_lowest_score
+
+def segment_and_recognize(plate_image: np.ndarray, kd_tree: KDTree) -> list:
 	"""
 	In this file, you will define your own segment_and_recognize function.
 	To do:
@@ -19,9 +23,18 @@ def segment_and_recognize(plate_images):
 	Hints:
 		You may need to define other functions.
 	"""
+	recognized_characters: list = []
+	chars: list = segment(plate_image)
 
-	recognized_plates = [None, None, None]
-	return recognized_plates
+	for s in chars:
+		resized_img = cv2.resize(s, (30, 45), interpolation = cv2.INTER_LINEAR)
+		margined_img = put_margin(resized_img, 0, 0, 29, 44)
+		margined_img[margined_img >= 125] = 255
+		margined_img[margined_img < 125] = 0
+
+		recognized_characters.append(give_label_lowest_score(margined_img, kd_tree))
+	
+	return recognized_characters
 
 def segment(plate, out=None, binary = False):
 	"""
@@ -39,8 +52,10 @@ def segment(plate, out=None, binary = False):
 		cv2.imwrite(out, cleared)
 		return
 	
+
 	cleared = clear_top_bottom(cleared)
 	Helpers.plotImage(cleared, cmapType="gray")
+
 	characters = []
 	limits = []
 	dashes = []

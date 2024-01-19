@@ -122,6 +122,8 @@ def clear_top_bottom(binary):
 def merge_or_split(characters, limits, plate):
 	avg = 0
 	res = []
+	if (len(characters) == 0):
+		return characters
 	for char in characters:
 		avg += char.shape[1]
 	avg = avg/len(characters)

@@ -94,10 +94,10 @@ def iterate_dir(path):
             
             for plate in plates:
                 #Helpers.plotImage(plate)
-                rotated = plate_rotation.rotation_pipeline(plate)
-                #Recognize.segment(rotated)
-                plt.imshow(plate)
-                plt.show()
+                # rotated = plate_rotation.rotation_pipeline(plate)
+                # #Recognize.segment(rotated)
+                # plt.imshow(plate)
+                # plt.show()
 
                 try:
                     rotated = plate_rotation.rotation_pipeline(plate)

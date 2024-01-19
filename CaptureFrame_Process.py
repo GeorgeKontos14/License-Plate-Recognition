@@ -23,9 +23,9 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
-    path = "dataset/Frames/Category_I"
-    #iterate_dir(path)
-    frame = cv2.imread("dataset/Frames/Category_I/plate31.jpg")
+    path = "dataset/Frames/Category_II"
+    iterate_dir(path)
+    #frame = cv2.imread("dataset/Frames/Category_I/plate1.jpg")
     #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     #frame[frame >= 125] = 255
     #frame[frame < 125] = 0
@@ -34,12 +34,14 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     #for char in characters:
     #    Helpers.plotImage(char, cmapType="gray")
     #print(len(characters))
-    plates = Localization.plate_detection(frame)
-    for plate in plates:
-        rotated = plate_rotation.rotation_pipeline(plate)
-        chars = Recognize.segment(rotated)
-        for char in chars:
-            Helpers.plotImage(char, cmapType="gray")
+    #plates = Localization.plate_detection(frame)
+    #for plate in plates:
+        #Helpers.plotImage(plate)
+    #    rotated = plate_rotation.rotation_pipeline(plate)
+        #Helpers.plotImage(rotated)
+    #   chars = Recognize.segment(rotated)
+    #    for char in chars:
+    #        Helpers.plotImage(char, cmapType="gray")
             
 
     #    print(len(chars))
@@ -72,11 +74,14 @@ def iterate_dir(path):
     for filename in os.scandir(path):
         if filename.is_file():
             print(filename.name)
+            if filename.name == "plate14.jpg":
+                continue
             frame = cv2.imread(filename.path)
             plates = Localization.plate_detection(frame)
             for plate in plates:
                 rotated = plate_rotation.rotation_pipeline(plate)
-                chars = Recognize.segment(rotated)
+                #Helpers.plotImage(rotated)
+                chars, dashes = Recognize.segment(rotated)
                 for char in chars:
                     Helpers.plotImage(char, cmapType="gray")
     return plates

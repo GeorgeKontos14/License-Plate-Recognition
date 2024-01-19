@@ -24,18 +24,22 @@ def reshape_img(img: np.ndarray) -> np.ndarray:
         if maxY < i:
           maxY = i
 
-  reshaped_size: np.ndarray = np.zeros((60, 60))
+  margin_img: np.ndarray = put_margin(img, minX, minY, maxX, maxY)
+
+  return margin_img
+
+def put_margin(img: np.ndarray, minX: int, minY: int, maxX: int, maxY: int) -> np.ndarray:
+  reshaped_size: np.ndarray = np.zeros((64, 64))
 
   central_x: int = (maxX - minX) // 2
   central_y: int = (maxY - minY) // 2
 
-  top_x: int = 30 - central_x
-  top_y: int = 30 - central_y
+  top_x: int = 32 - central_x
+  top_y: int = 32 - central_y
 
   for i in range(minY, maxY+1):
     for j in range(minX, maxX+1):
       reshaped_size[i-minY+top_y, j-minX+top_x] = img[i, j]
-
 
   return reshaped_size
 

@@ -7,6 +7,10 @@ import Recognize
 import plate_rotation
 import Helpers
 
+import matplotlib.pyplot as plt
+from pre_processing_data import reshape_img
+from character_recognition import sift_descriptor
+
 def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
     In this file, you will define your own CaptureFrame_Process funtion. In this function,
@@ -23,7 +27,7 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
-    path = "dataset/Frames/Category_II"
+    path = "dataset/Frames/Category_III"
     iterate_dir(path)
     #frame = cv2.imread("dataset/Frames/Category_I/plate1.jpg")
     #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -71,19 +75,46 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     pass
 
 def iterate_dir(path):
+    dataset = []
+    folder_path = './dataset/Lab07-Dataset'
+    files = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
+
+    # for file_name in files:
+    #     img = 255 - cv2.imread(folder_path + '/' + file_name, cv2.IMREAD_GRAYSCALE)
+    #     # img = cv2.resize(img, ())
+
+    #     descriptor = sift_descriptor(img)
+    #     dataset.append((descriptor, file_name[0]))
+
     for filename in os.scandir(path):
         if filename.is_file():
             print(filename.name)
-            if filename.name == "plate14.jpg":
-                continue
             frame = cv2.imread(filename.path)
             plates = Localization.plate_detection(frame)
+            
             for plate in plates:
                 #Helpers.plotImage(plate)
                 rotated = plate_rotation.rotation_pipeline(plate)
                 #Recognize.segment(rotated)
+                plt.imshow(plate)
+                plt.show()
+
+                try:
+                    rotated = plate_rotation.rotation_pipeline(plate)
+                except Exception:
+                    continue
+
                 #Helpers.plotImage(rotated)
-                chars, dashes = Recognize.segment(rotated)
-                for char in chars:
-                    Helpers.plotImage(char, cmapType="gray")
+                try:
+                    chars, dashes = Recognize.segment(rotated)
+                    for char in chars:
+                        Helpers.plotImage(char, cmapType="gray")
+
+                except Exception:
+                    pass
     return plates
+
+def adjast_size(m, n):
+    while m % n != 0 and m < n:
+        m += m % n
+    return m

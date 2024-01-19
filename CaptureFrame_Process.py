@@ -79,11 +79,12 @@ def iterate_dir(path):
     folder_path = './dataset/Lab07-Dataset'
     files = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
 
-    for file_name in files:
-        img = 255 - cv2.imread(folder_path + '/' + file_name, cv2.IMREAD_GRAYSCALE)
-        
-        descriptor = sift_descriptor(img)
-        dataset.append((descriptor, file_name[0]))
+    # for file_name in files:
+    #     img = 255 - cv2.imread(folder_path + '/' + file_name, cv2.IMREAD_GRAYSCALE)
+    #     # img = cv2.resize(img, ())
+
+    #     descriptor = sift_descriptor(img)
+    #     dataset.append((descriptor, file_name[0]))
 
     for filename in os.scandir(path):
         if filename.is_file():
@@ -111,4 +112,5 @@ def iterate_dir(path):
 
 def adjast_size(m, n):
     while m % n != 0 and m < n:
-        pass
+        m += m % n
+    return m

@@ -29,13 +29,13 @@ def reshape_img(img: np.ndarray) -> np.ndarray:
   return margin_img
 
 def put_margin(img: np.ndarray, minX: int, minY: int, maxX: int, maxY: int) -> np.ndarray:
-  reshaped_size: np.ndarray = np.zeros((60, 60))
+  reshaped_size: np.ndarray = np.zeros((64, 64))
 
   central_x: int = (maxX - minX) // 2
   central_y: int = (maxY - minY) // 2
 
-  top_x: int = 30 - central_x
-  top_y: int = 30 - central_y
+  top_x: int = 32 - central_x
+  top_y: int = 32 - central_y
 
   for i in range(minY, maxY+1):
     for j in range(minX, maxX+1):

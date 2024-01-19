@@ -35,11 +35,11 @@ def segment(plate, out=None, binary = False):
 		#Helpers.plotImage(background, "Background", cmapType="gray")
 		cleared = np.copy(background)
 	
+	cleared = clear_top_bottom(cleared)
+	cleared = dilate_or_erode(cleared)
 	if (out):
 		cv2.imwrite(out, cleared)
 		return
-	
-	cleared = clear_top_bottom(cleared)
 	Helpers.plotImage(cleared, cmapType="gray")
 	characters = []
 	limits = []
@@ -74,7 +74,7 @@ def segment(plate, out=None, binary = False):
 			continue
 		else:
 			if letter.shape[1] >= 3:
-				characters.append(letter)
+				characters.append(remove_black_rows(letter))
 				limits.append((j, i))
 		i += 1
 	fixed = merge_or_split(characters, limits, cleared)
@@ -152,3 +152,30 @@ def can_be_dash(chars_length, dashes_length):
 	if chars_length == 3 and dashes_length == 1:
 		return True
 	return False
+
+
+def remove_black_rows(letter):
+	top = 0
+	bottom = letter.shape[0]-1
+	while np.count_nonzero(letter[top]) == 0:
+		top += 1
+	while np.count_nonzero(letter[bottom]) == 0:
+		bottom -= 1
+	return letter[top:bottom, :]
+
+def dilate_or_erode(plate):
+	# struct_element = np.ones((3,3))
+	# #struct_element[0][0] = struct_element[0][2] = struct_element[2][0] = struct_element[2][2] = 0
+	# struct_element[0][0] = 0
+	# struct_element[0][2] = 0
+	# struct_element[2][0] = 0
+	# struct_element[2][2] = 0
+	struct_element = np.array([[0,1,0],
+               [1,1,1],
+               [0,1,0]], np.uint8)
+	ratio = np.count_nonzero(plate)/(plate.shape[1]*plate.shape[0])
+	if ratio < 0.261:
+		return cv2.erode(cv2.dilate(plate, struct_element), struct_element)
+	elif ratio > 0.31:
+		return cv2.dilate(cv2.erode(plate, struct_element), struct_element)
+	return plate

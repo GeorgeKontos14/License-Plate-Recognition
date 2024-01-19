@@ -79,7 +79,9 @@ def iterate_dir(path):
             frame = cv2.imread(filename.path)
             plates = Localization.plate_detection(frame)
             for plate in plates:
+                #Helpers.plotImage(plate)
                 rotated = plate_rotation.rotation_pipeline(plate)
+                #Recognize.segment(rotated)
                 #Helpers.plotImage(rotated)
                 chars, dashes = Recognize.segment(rotated)
                 for char in chars:

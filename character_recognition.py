@@ -42,11 +42,14 @@ def calculate_perimeter_area_vector(img: np.ndarray) -> np.ndarray:
 
     return np.array([perimeter, area])
 
-def recognise_character(kd_tree: KDTree, img: np.ndarray, k: int):
-    """
-    """
-    perimeter_area_vector: np.ndarray = calculate_perimeter_area_vector(img)
-    k_nearest_points: list = kd_tree.get_k_nearest_points(perimeter_area_vector, k)
-    pred: str = give_label_lowest_score(img, k_nearest_points)
+# def recognise_character(kd_tree: KDTree, img: np.ndarray, k: int):
+#     """
+#     """
+#     perimeter_area_vector: np.ndarray = calculate_perimeter_area_vector(img)
+#     k_nearest_points: list = kd_tree.get_k_nearest_points(perimeter_area_vector, k)
+#     pred: str = give_label_lowest_score(img, k_nearest_points)
 
-    return pred
+#     return pred
+
+def recognise_character(data_instances: list, img: np.ndarray):
+    pass

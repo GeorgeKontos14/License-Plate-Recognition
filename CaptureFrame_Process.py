@@ -7,11 +7,6 @@ import Recognize
 import plate_rotation
 import Helpers
 
-from character_recognition import calculate_perimeter_area_vector, give_label_lowest_score
-from kd_tree import HeapEntry
-from pre_processing_data import reshape_img
-
-
 def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
     In this file, you will define your own CaptureFrame_Process funtion. In this function,
@@ -28,9 +23,9 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
-    path = "dataset/Evaluation/Category_II"
+    path = "dataset/Frames/Category_II"
     iterate_dir(path)
-    #frame = cv2.imread("dataset/Frames/Category_I/plate31.jpg")
+    #frame = cv2.imread("dataset/Frames/Category_I/plate1.jpg")
     #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     #frame[frame >= 125] = 255
     #frame[frame < 125] = 0
@@ -41,8 +36,10 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     #print(len(characters))
     #plates = Localization.plate_detection(frame)
     #for plate in plates:
+        #Helpers.plotImage(plate)
     #    rotated = plate_rotation.rotation_pipeline(plate)
-    #    chars = Recognize.segment(rotated)
+        #Helpers.plotImage(rotated)
+    #   chars = Recognize.segment(rotated)
     #    for char in chars:
     #        Helpers.plotImage(char, cmapType="gray")
             
@@ -74,31 +71,17 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     pass
 
 def iterate_dir(path):
-    directory_path = './dataset/CharactersDataset/TrainingSet/'
-
-    dataset = []
-
-    folders = [folder for folder in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, folder))]
-
-    for folder in folders:
-        folder_path = directory_path + '/' + folder
-        files = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
-
-        for file_name in files:
-            img = 255 - cv2.imread(folder_path + '/' + file_name, cv2.IMREAD_GRAYSCALE)
-            reshaped_img = reshape_img(img)
-
-            p = calculate_perimeter_area_vector(reshaped_img)
-
-            dataset.append(HeapEntry(0, p, reshaped_img, folder[0]))
-
     for filename in os.scandir(path):
         if filename.is_file():
             print(filename.name)
+            if filename.name == "plate14.jpg":
+                continue
             frame = cv2.imread(filename.path)
             plates = Localization.plate_detection(frame)
             for plate in plates:
                 rotated = plate_rotation.rotation_pipeline(plate)
-                print(Recognize.segment_and_recognize(rotated, dataset))
-                
+                #Helpers.plotImage(rotated)
+                chars, dashes = Recognize.segment(rotated)
+                for char in chars:
+                    Helpers.plotImage(char, cmapType="gray")
     return plates

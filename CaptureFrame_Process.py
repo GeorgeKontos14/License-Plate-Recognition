@@ -70,13 +70,17 @@ def iterate_dir(path):
             plates = Localization.plate_detection(frame)
             
             for plate in plates:
-                plt.imshow(plate)
-                plt.show()
+                #Helpers.plotImage(plate)
+                # rotated = plate_rotation.rotation_pipeline(plate)
+                # #Recognize.segment(rotated)
+                # plt.imshow(plate)
+                # plt.show()
 
                 try:
                     rotated = plate_rotation.rotation_pipeline(plate)
                 except Exception:
                     continue
+
                 #Helpers.plotImage(rotated)
                 try:
                     chars, dashes = Recognize.segment(rotated)

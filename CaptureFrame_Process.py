@@ -1,5 +1,9 @@
 import cv2
 import time
+import Localization
+import plate_rotation
+import Recognize
+
 
 def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
     """
@@ -15,8 +19,7 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
         3. save_path: final .csv file path
     Output: None
     """
-
-    # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
+    
     output = open(save_path, "w")
     output.write("License plate,Frame no.,Timestamp(seconds)\n")
 
@@ -27,8 +30,9 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
     counter = 0
     prev = None
     start_scene = 1
-    scene = []
+    scene_outputs = []
     start_time = time.time()
+    frame_no = 1
     while cap.isOpened():
         ret, frame = cap.read()
         if ret == True:
@@ -37,35 +41,26 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
             if show:
                 cv2.imshow('Frame', frame)
             if scene_change(prev, frame, start_scene, counter, sample_frequency):
-                # TODO: Run Localization - Rotation - Segmentation - Recognition Pipeline for all frames of the scene
-                # TODO: Majority vote - Also consider similarity with previous plate?
+                # TODO: Majority vote - Also consider similarity with previous plate
+
                 time_stamp = time.time()-start_time
                 output.write("XS-NB-23,"+str(counter)+","+str(time_stamp)+"\n")
                 start_scene = counter+sample_frequency
-                scene = [frame]
-            else:
-                scene.append(frame)
+                scene_outputs = []
+            out = run_scene_pipeline(frame)
+            if out != None:
+                frame_no = counter
+                scene_outputs.append(out)
+
             prev = frame
             counter += sample_frequency
-            cap.set(cv2.CAP_PROP_POS_FRAMES, counter)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_no)
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
         else:
             break
     cap.release()
     cv2.destroyAllWindows()
-
-    # TODO: Implement actual algorithms for Localizing Plates
-
-    # TODO: Implement actual algorithms for Recognizing Characters
-
-    # output = open(save_path, "w")
-    # output.write("License plate,Frame no.,Timestamp(seconds)\n")
-
-    # TODO: REMOVE THESE (below) and write the actual values in `output`
-    # output.write("XS-NB-23,34,1.822\n")
-    # output.write("YOUR,STUFF,HERE\n")
-    # TODO: REMOVE THESE (above) and write the actual values in `output`
 
     pass
 
@@ -84,3 +79,21 @@ def scene_change(before, after, start_scene, before_no, frequency):
     if before_no+frequency-start_scene > 24 and comp < 0.35:
         return True
     return False
+
+def run_scene_pipeline(frame):
+    """
+    Gets a scene as an array of frames as input and returns the output for each frame as output
+    """
+    output = ""
+    plates = Localization.plate_detection(frame)
+    if len(plates) == 0:
+        return None
+    for plate in plates:
+        rotated = plate_rotation.rotation_pipeline(plate)
+        if type(rotated) == 'NoneType':
+            continue
+        chars, dashes = Recognize.segment(rotated)
+        if len(chars) != 6:
+            continue
+        # TODO: Recognition and add recognition output to outputs array
+    return output

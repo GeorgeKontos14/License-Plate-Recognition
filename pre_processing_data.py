@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 import os
 
-from character_recognition import calculate_perimeter_area_vector
 
 def reshape_img(img: np.ndarray) -> np.ndarray:
   """
@@ -44,19 +43,19 @@ def put_margin(img: np.ndarray, minX: int, minY: int, maxX: int, maxY: int) -> n
   return reshaped_size
 
 def process_raw_data_for_characters(directory_path: str) -> list:
-    folders = [folder for folder in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, folder))]
+    # folders = [folder for folder in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, folder))]
     dataset = []
 
-    for folder in folders:
-        folder_path = directory_path + '/' + folder
-        files = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
+    # for folder in folders:
+    #     folder_path = directory_path + '/' + folder
+    #     files = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
 
-        for file_name in files:
-            img = 255 - cv2.imread(folder_path + '/' + file_name, cv2.IMREAD_GRAYSCALE)
-            reshaped_img = reshape_img(img)
+    #     for file_name in files:
+    #         img = 255 - cv2.imread(folder_path + '/' + file_name, cv2.IMREAD_GRAYSCALE)
+    #         reshaped_img = reshape_img(img)
 
-            p = calculate_perimeter_area_vector(reshaped_img)
+    #         p = calculate_perimeter_area_vector(reshaped_img)
 
-            dataset.append((folder[0], p, reshaped_img))
+    #         dataset.append((folder[0], p, reshaped_img))
     
     return dataset

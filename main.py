@@ -22,6 +22,8 @@ if __name__ == '__main__':
 		output_path = os.getcwd()
 	else:
 		output_path = args.output_path
-	file_path = args.file_path
-	sample_frequency = args.sample_frequency
-	CaptureFrame_Process.CaptureFrame_Process(file_path, sample_frequency, output_path)
+	# file_path = args.file_path
+	file_path = 'dataset\TrainingSet\Categorie I\Video7_2.avi'
+	# sample_frequency = args.sample_frequency
+	sample_frequency = 5
+	CaptureFrame_Process.CaptureFrame_Process(file_path, sample_frequency, output_path, show=False)

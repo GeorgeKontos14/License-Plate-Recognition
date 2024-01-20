@@ -43,6 +43,9 @@ def localize_and_rotate(frame):
     return rotated
 
 def segment(plate):
+    """
+    Binarizes a plate and segments its characters
+    """
     try:
         chars, dashes = Recognize.segment(plate)
         for char in chars:
@@ -52,6 +55,9 @@ def segment(plate):
     return chars, dashes
 
 def iterate_dir(path, data=False):
+    """
+    Iterates a directory and runs the pipeline on it
+    """
     if data:
         dataset = []
         folder_path = './dataset/Lab07-Dataset'

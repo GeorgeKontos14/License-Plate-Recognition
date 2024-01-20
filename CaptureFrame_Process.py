@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from pre_processing_data import reshape_img
 from character_recognition import sift_descriptor
 
-def CaptureFrame_Process(file_path, sample_frequency, save_path):
+def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
     """
     In this file, you will define your own CaptureFrame_Process funtion. In this function,
     you need three arguments: file_path(str type, the video file), sample_frequency(second), save_path(final results saving path).
@@ -27,18 +27,36 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
     """
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
-    """cap = cv2.VideoCapture(file_path)
+    cap = cv2.VideoCapture(file_path)
+    cap.set(cv2.CAP_PROP_FPS, sample_frequency)
+    if cap.isOpened()== False: 
+        print("Error opening video stream or file")
+    counter = 0
+    prev = None
+    start_scene = 1
+    scenes = 1
     while cap.isOpened():
         ret, frame = cap.read()
         if ret == True:
-            cv2.imshow('Frame', frame)
+            if counter == 0:
+                prev = frame
+            if show:
+                cv2.imshow('Frame', frame)
+            if scene_change(prev, frame, start_scene, counter, sample_frequency):
+                start_scene = counter+sample_frequency
+                scenes += 1
+            prev = frame
+            counter += sample_frequency
+            cap.set(cv2.CAP_PROP_POS_FRAMES, counter)
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
         else:
             break
     cap.release()
-    cv2.destroyAllWindows()"""
+    cv2.destroyAllWindows()
 
     # TODO: Implement actual algorithms for Localizing Plates
-    #plates = Localization.plate_detection(frame)
+
     # TODO: Implement actual algorithms for Recognizing Characters
 
     output = open(save_path, "w")
@@ -51,47 +69,18 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
 
     pass
 
-def iterate_dir(path):
-    dataset = []
-    folder_path = './dataset/Lab07-Dataset'
-    files = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
-
-    # for file_name in files:
-    #     img = 255 - cv2.imread(folder_path + '/' + file_name, cv2.IMREAD_GRAYSCALE)
-    #     # img = cv2.resize(img, ())
-
-    #     descriptor = sift_descriptor(img)
-    #     dataset.append((descriptor, file_name[0]))
-
-    for filename in os.scandir(path):
-        if filename.is_file():
-            print(filename.name)
-            frame = cv2.imread(filename.path)
-            plates = Localization.plate_detection(frame)
-            
-            for plate in plates:
-                #Helpers.plotImage(plate)
-                # rotated = plate_rotation.rotation_pipeline(plate)
-                # #Recognize.segment(rotated)
-                # plt.imshow(plate)
-                # plt.show()
-
-                try:
-                    rotated = plate_rotation.rotation_pipeline(plate)
-                except Exception:
-                    continue
-
-                #Helpers.plotImage(rotated)
-                try:
-                    chars, dashes = Recognize.segment(rotated)
-                    for char in chars:
-                        Helpers.plotImage(char, cmapType="gray")
-
-                except Exception:
-                    pass
-    return plates
-
-def adjast_size(m, n):
-    while m % n != 0 and m < n:
-        m += m % n
-    return m
+def scene_change(before, after, start_scene, before_no, frequency):
+    """
+    Returns true if the two frames are from different scenes; false otherwise
+    """
+    # Histogram approach:
+    hist_before = cv2.calcHist([before], [0,1,2], None, [256,256,256], [0, 256, 0, 256, 0, 256])
+    cv2.normalize(hist_before, hist_before, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+    hist_after = cv2.calcHist([after], [0,1,2], None, [256,256,256], [0, 256, 0, 256, 0, 256])
+    cv2.normalize(hist_after, hist_after, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+    comp = cv2.compareHist(hist_before, hist_after, cv2.HISTCMP_CORREL)
+    # if comp < 0.1:
+    #     return True
+    if before_no+frequency-start_scene > 24 and comp < 0.35:
+        return True
+    return False

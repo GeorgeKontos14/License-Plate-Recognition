@@ -22,7 +22,7 @@ def segment_and_recognize(plate_image: np.ndarray, reference_characters: list):
 	Hints:
 		You may need to define other functions.
 	"""
-	chars, dashes = Segment.segment(plate_image, show=True)
+	chars, dashes = Segment.segment(plate_image, show=False)
 	if chars is None:
 		#print('None')
 		return [], ''
@@ -45,3 +45,30 @@ def majority_characterwise(scene_outputs: list, scene_scores: list) -> str:
 			i += 1
 	
 	return ''.join(min(vote, key=vote.get) for vote in votes)
+
+
+
+def add_dashes(output):
+	"""
+	Adds dashes to a given license plate
+	"""
+	prev = output[0].isdigit()
+	res = ''
+	res += output[0]
+	dashes = 0
+	for i in range(1, 6):
+		if dashes == 2:
+			res += output[i]
+			continue
+		char = output[i]
+		cur = char.isdigit()
+		if cur == prev:
+			res += char
+		elif cur != prev:
+			res += '-' + char
+			dashes += 1
+		prev = cur
+	if dashes == 1:
+		res = res[:5]+'-'+res[5:]
+	return res
+

@@ -20,13 +20,18 @@ def give_label_lowest_score(img: np.ndarray, reference_characters: list) -> str:
     """
     """
     min_score: int = np.inf
-    min_score_char: int = 0
+    min_score_char: str = 0
 
+    img[img < 125] = 0
+    img[img >= 125] = 255 
 
     for char in reference_characters:
         reference_character = cv2.resize(char[0], (img.shape[1], img.shape[0]))
         reference_character = cv2.cvtColor(reference_character, cv2.COLOR_BGR2GRAY)
-        score = difference_score(img, reference_character)
+        reference_character[reference_character < 125] = 0
+        reference_character[reference_character >= 125] = 255
+
+        score = len(np.where(reference_character != img)[0])#difference_score(img, reference_character)
 
         if score < min_score:
             min_score = score 
@@ -98,3 +103,8 @@ def get_license_plate_number(reference_characters: list, chars: list) -> str:
             xor_scores.append(scores[i])
 
     return xor_scores, plate_num
+
+# arr1 = np.array([[1, 0], [0, 1]])
+# arr2 = np.array([[0, 1], [1, 0]])
+
+# print(len(np.where(arr1 != arr2)[0]))

@@ -50,10 +50,8 @@ def isodata_thresholding(image, epsilon = 2):
         old_tau = tau
         tau = int((m1+m2)/2)
     background = np.zeros(image.shape)
-    foreground = np.zeros(image.shape)
     background[image<tau] = 255
-    foreground[image>=tau] = 255
-    return background, foreground
+    return background
 
 def adaptive_thresholding(image, size, c):
     # Create empty lower/ background and upper/foreground matrices

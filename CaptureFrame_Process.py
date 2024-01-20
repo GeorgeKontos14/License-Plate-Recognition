@@ -44,7 +44,9 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_chara
                 cv2.imshow('Frame', frame)
             if scene_change(prev, frame, start_scene, counter, sample_frequency):
                 # TODO: Majority vote - Also consider similarity with previous plate
+                #print(scene_outputs)
                 pred_plate = Recognize.majority_characterwise(scene_outputs, scene_scores)
+                #print(pred_plate)
                 if pred_plate is None:
                     continue
                 time_stamp = time.time()-start_time
@@ -67,6 +69,12 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_chara
             break
     cap.release()
     cv2.destroyAllWindows()
+
+    pred_plate = Recognize.majority_characterwise(scene_outputs, scene_scores)
+    if pred_plate is None:
+        return
+    time_stamp = time.time()-start_time
+    output.write(pred_plate+','+str(counter)+","+str(time_stamp)+"\n")
 
     pass
 
@@ -108,6 +116,7 @@ def run_scene_pipeline(frame, reference_characters):
         scores, output = Recognize.segment_and_recognize(rotated, reference_characters)
         #print(scores)
         #print(output)
+        #print(scores)
         if len(scores) == 0:
             return None, None
 

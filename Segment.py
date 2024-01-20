@@ -9,7 +9,7 @@ def segment(plate, out=None, binary = False, show=True):
 	cleared = np.copy(plate)
 	if not binary:
 		gray = cv2.cvtColor(plate, cv2.COLOR_BGR2GRAY)
-		background, _ = Helpers.isodata_thresholding(gray)
+		background = Helpers.isodata_thresholding(gray)
 		#background, _ = Helpers.adaptive_thresholding(gray, 25, 30) - Does not work well; perhaps try better parameters
 		#Helpers.plotImage(background, "Background", cmapType="gray")
 		cleared = np.copy(background)
@@ -24,53 +24,42 @@ def segment(plate, out=None, binary = False, show=True):
 	characters = []
 	limits = []
 	dashes = []
-	i = 0
-	while i < cleared.shape[1]:
-		column = cleared[:, i]
-		# Discard columns without enough white pixels
-		if np.count_nonzero(column) <= 8:
-			i += 1
+	columns = np.count_nonzero(cleared, axis = 0)
+	
+	columns[columns<3] = 0
+	# print(columns)
+	start = 0
+	while start < len(columns):
+		if columns[start] == 0:
+			start += 1
 			continue
-		# Find the area of the continuous white pixels
-		old_i = i
-		while np.count_nonzero(cleared[:, i:i+3]) > 10:
-			i += 1
-			if i == cleared.shape[1]:
-				break
-		j = old_i
-		while np.count_nonzero(cleared[:, j-3:j]) > 10:
-			j -= 1
-			if j == 0:
-				break
-		letter = cleared[:, j:i]
 		
-		# Check if the character is a dot or a dash;
-		# Dots appear in the beginning of the plates
-		# due to shadows. We check by examining how many 
-		# of the white pixels are near the middle.
+		end = start+1
+		while columns[end] > 0:
+			end += 1
+			if end == len(columns):
+				break
+		letter = remove_black_rows(cleared[:, start:end])
 		if is_dash(letter):
-			if can_be_dash(len(characters), len(dashes)):
-				dashes.append(len(characters))
+			start = end+1
 			continue
-		else:
-			if letter.shape[1] >= 3:
-				characters.append(remove_black_rows(letter))
-				limits.append((j, i))
-		i += 1
-	if len(characters) == 1:
-		return divide_by_8(cleared), dashes
+		if letter.shape[1] >= 3:
+			Helpers.plotImage(letter, cmapType="gray")
+			characters.append(letter)
+			limits.append((start, end))
+		start = end+1
+
+	if len(characters) <= 3 or len(characters) >= 9:
+		return None, None
 	fixed = merge_or_split(characters, limits, cleared, dashes)
 	return fixed, dashes
 
 
 def is_dash(letter):
-	whites = np.count_nonzero(letter)
-	middle = int(letter.shape[0]/2)
-	upper_mid = middle+int(0.1*letter.shape[0])
-	lower_mid = middle-int(0.1*letter.shape[0])
-	upper = middle+int(0.2*letter.shape[0])
-	lower = middle-int(0.2*letter.shape[0])
-	return np.count_nonzero(letter[lower:middle]) > 0.7*whites or np.count_nonzero(letter[lower_mid:upper_mid]) > 0.7*whites or np.count_nonzero(letter[middle:upper]) > 0.7*whites
+	rows = np.count_nonzero(letter, axis = 1)
+	return len(np.where(rows==0)[0]) >= 1 or np.count_nonzero(letter)>= 0.9*letter.shape[0]*letter.shape[1] or letter.shape[0] <= 1.2*letter.shape[1]
+	
+	
 
 def clear_top_bottom(binary):
 	height, length = binary.shape
@@ -195,13 +184,3 @@ def dilate_or_erode(plate):
 	elif ratio > 0.31:
 		return cv2.dilate(cv2.erode(plate, struct_element), struct_element)
 	return plate
-
-def divide_by_8(plate):
-	chars = []
-	length = plate.shape[1]
-	step = int(length/8)
-	cur = 0
-	while len(chars) != 8:
-		chars.append(remove_black_rows(plate[:, cur:(cur+step)]))
-		cur += step
-	return chars

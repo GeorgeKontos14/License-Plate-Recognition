@@ -93,7 +93,7 @@ def segment(plate, out=None, binary = False, show=True):
 		i += 1
 	if len(characters) == 1:
 		return divide_by_8(cleared), dashes
-	fixed, dashes = merge_or_split(characters, limits, cleared, dashes)
+	fixed = merge_or_split(characters, limits, cleared, dashes)
 	return fixed, dashes
 
 
@@ -161,10 +161,12 @@ def merge_or_split(characters, limits, plate, dashes):
 				max_length_ind = i
 		mid = int(char.shape[1]/2)
 		temp = []
-		if copied_dashes[0] == max_length_ind:
-			copied_dashes[0] += 1
-		if copied_dashes[1] == max_length_ind:
-			copied_dashes[1] += 1
+		if len(dashes) > 0:
+			if copied_dashes[0] == max_length_ind:
+				copied_dashes[0] += 1
+		if len(dashes) > 1:
+			if copied_dashes[1] == max_length_ind:
+				copied_dashes[1] += 1
 		for i in range(len(copied_chars)):
 			if i != max_length_ind:
 				temp.append(copied_chars[i])
@@ -173,22 +175,24 @@ def merge_or_split(characters, limits, plate, dashes):
 				temp.append(copied_chars[i][:, mid:])
 		copied_chars = temp
 
-	while len(characters) > 6:
+	while len(copied_chars) > 6:
 		min_length = plate.shape[1]
 		min_length_ind = 0
 		for i in range(len(copied_chars)-1):
-			if copied_dashes[0] == i+1 or copied_dashes[1] == i+1:
+			if i+1 in copied_dashes:
 				continue
-			curr_length = copied_dashes[i].shape[1] + copied_dashes[i+1].shape[1]
+			curr_length = copied_chars[i].shape[1] + copied_chars[i+1].shape[1]
 			if curr_length < min_length:
 				min_length = curr_length
 				min_length_ind = i
 		temp = []
 		temp_lims = []
-		if copied_dashes[0] == min_length_ind+1:
-			copied_dashes[0] -= 1
-		if copied_dashes[1] == min_length_ind+1:
-			copied_dashes[1] -= 1
+		if len(dashes) > 0:
+			if copied_dashes[0] == min_length_ind+1:
+				copied_dashes[0] -= 1
+		if len(dashes) > 1:
+			if copied_dashes[1] == min_length_ind+1:
+				copied_dashes[1] -= 1
 		for i in range(len(copied_chars)):
 			if i != min_length_ind and i != min_length_ind+1:
 				temp.append(copied_chars[i])
@@ -199,10 +203,11 @@ def merge_or_split(characters, limits, plate, dashes):
 				new_lims = (copied_limits[i][0], copied_limits[i+1][0])
 				temp_lims.append(new_lims)
 				char = remove_black_rows(plate[:, new_lims[0]:new_lims[1]])
+				temp.append(char)
 		copied_chars = temp
 		copied_limits = temp_lims		
 
-	return copied_chars, copied_dashes
+	return copied_chars
 
 def can_be_dash(chars_length, dashes_length):
 	"""
@@ -253,7 +258,7 @@ def divide_by_8(plate):
 	length = plate.shape[1]
 	step = int(length/8)
 	cur = 0
-	while cur < length:
+	while len(chars) != 8:
 		chars.append(remove_black_rows(plate[:, cur:(cur+step)]))
 		cur += step
 	return chars

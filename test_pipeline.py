@@ -8,8 +8,7 @@ import plate_rotation
 import Helpers
 
 import matplotlib.pyplot as plt
-from pre_processing_data import reshape_img
-from character_recognition import sift_descriptor, recognise_character
+from character_recognition import recognise_character
 
 def read_image(path, filename, plot=False, gray=False, binary=False):
     """
@@ -42,31 +41,11 @@ def localize_and_rotate(frame):
             continue
     return rotated
 
-def segment(plate):
-    """
-    Binarizes a plate and segments its characters
-    """
-    try:
-        chars, dashes = Recognize.segment(plate)
-        # for char in chars:
-        #     Helpers.plotImage(char, cmapType="gray")
-    except Exception:
-        pass
-    return chars, dashes
-
 def iterate_dir(path, data=True):
     """
     Iterates a directory and runs the pipeline on it
     """
-    if data:
-        dataset = []
-        folder_path = './dataset/Lab07-Dataset'
-        files = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]            
-        
-        for file_name in files:
-            reference_img = cv2.imread(folder_path + '/' + file_name)
-            if reference_img is not None:
-                dataset.append((reference_img, file_name[0]))
+    reference_characters: list = read_reference_characters('./dataset/Lab07-Dataset')        
 
     for filename in os.scandir(path):
         if filename.is_file():
@@ -74,21 +53,45 @@ def iterate_dir(path, data=True):
             plates = localize_and_rotate(frame)
             print(filename.name)
             for plate in plates:
-                chars, dashes = segment(plate)
-                plate_num = ''
-
-                if len(chars) != 6:
-                    continue
-
-                for char in chars:
-                    plate_num += recognise_character(dataset, char)
+                chars, dashes = Recognize.segment(plate, show=False)
+                plate_num: str = get_license_plate_number(reference_characters, chars)
                 print(plate_num)
 
+def read_reference_characters(folder_path: str) -> list:
+    reference_characters: list = []
+    files: list = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]            
+    
+    for file_name in files:
+        reference_img: np.ndarray = cv2.imread(folder_path + '/' + file_name)
+        if reference_img is not None:
+            reference_characters.append((reference_img, file_name[0]))
+    
+    return reference_characters 
 
-def adjast_size(m, n):
-    while m % n != 0 and m < n:
-        m += m % n
-    return m
+def get_license_plate_number(reference_characters: list, chars: list) -> str:
+    plate_num: str = ''
+
+    if len(chars) == 6:
+        for char in chars:
+            _, pred_char = recognise_character(reference_characters, char)
+            plate_num += pred_char
+    else:
+        scores: list = []
+        preds: list = []
+
+        for char in chars:
+            score, pred_char = recognise_character(reference_characters, char)
+            scores.append(score)
+            preds.append(pred_char)
+        
+        scores_max = np.argsort(scores)[:2].tolist()
+
+        for i, ch in enumerate(preds):
+            if i in scores_max:
+                continue
+            plate_num += ch
+
+    return plate_num
 
 if __name__ == '__main__':
     path = "dataset/Frames/Category_II"

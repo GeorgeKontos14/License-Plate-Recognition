@@ -10,8 +10,8 @@ def difference_score(img: np.ndarray, reference_character: np.ndarray) -> np.arr
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
             if (
-                (img[i, j] == 0 and reference_character[i, j] > 0) or
-                (img[i, j] > 0 and reference_character[i, j] == 0)
+                (img[i, j] == 0 and reference_character[i, j] > 125) or
+                (img[i, j] > 0 and reference_character[i, j] < 125)
             ):
                 score += 1
     
@@ -33,11 +33,10 @@ def give_label_lowest_score(img: np.ndarray, reference_characters: list) -> str:
             min_score = score 
             min_score_char = char[1]
     
-    return min_score_char
+    return min_score, min_score_char
 
 def recognise_character(reference_characters: list, img: np.ndarray):
-    pred: str = give_label_lowest_score(img, reference_characters) 
-    return pred
+    return give_label_lowest_score(img, reference_characters)
 
 def sift_descriptor(image_interest_patch: np.ndarray) -> np.ndarray:
     result: np.ndarray = np.zeros(128)

@@ -1,31 +1,12 @@
-import cv2
 import os
 import numpy as np
 import pandas as pd
 import Localization
 import Recognize
 import plate_rotation
-import Helpers
 
-import matplotlib.pyplot as plt
-from character_recognition import recognise_character
-
-def read_image(path, filename, plot=False, gray=False, binary=False):
-    """
-    Reads an image from the dataset
-    """
-    frame = cv2.imread(path+filename)
-    if gray:
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        if binary:
-            frame[frame >= 125] = 255
-            frame[frame < 125] = 0
-    if plot:
-        if gray:
-            Helpers.plotImage(frame, cmapType="gray")
-        else:
-            Helpers.plotImage(frame)
-    return frame
+from character_recognition import get_license_plate_number
+from pre_processing_data import read_image, read_reference_characters
 
 def localize_and_rotate(frame):
     """
@@ -53,45 +34,9 @@ def iterate_dir(path, data=True):
             plates = localize_and_rotate(frame)
             print(filename.name)
             for plate in plates:
-                chars, dashes = Recognize.segment(plate, show=False)
-                plate_num: str = get_license_plate_number(reference_characters, chars)
+                scores, plate_num = Recognize.segment_and_recognize(plate, reference_characters)
+                print(scores)
                 print(plate_num)
-
-def read_reference_characters(folder_path: str) -> list:
-    reference_characters: list = []
-    files: list = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]            
-    
-    for file_name in files:
-        reference_img: np.ndarray = cv2.imread(folder_path + '/' + file_name)
-        if reference_img is not None:
-            reference_characters.append((reference_img, file_name[0]))
-    
-    return reference_characters 
-
-def get_license_plate_number(reference_characters: list, chars: list) -> str:
-    plate_num: str = ''
-
-    if len(chars) == 6:
-        for char in chars:
-            _, pred_char = recognise_character(reference_characters, char)
-            plate_num += pred_char
-    else:
-        scores: list = []
-        preds: list = []
-
-        for char in chars:
-            score, pred_char = recognise_character(reference_characters, char)
-            scores.append(score)
-            preds.append(pred_char)
-        
-        scores_max = np.argsort(scores)[:2].tolist()
-
-        for i, ch in enumerate(preds):
-            if i in scores_max:
-                continue
-            plate_num += ch
-
-    return plate_num
 
 if __name__ == '__main__':
     path = "dataset/Frames/Category_II"

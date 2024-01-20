@@ -38,10 +38,8 @@ def segment(plate, out=None, binary = False, show=True):
 			if i == cleared.shape[1]:
 				break
 		j = old_i
-		while np.count_nonzero(cleared[:, j-3:j]) > 10:
-			j -= 1
-			if j == 0:
-				break
+		if np.count_nonzero(cleared[:, j-3:j]) > 10:
+			j = j-3
 		letter = cleared[:, j:i]
 		
 		# Check if the character is a dot or a dash;
@@ -58,7 +56,8 @@ def segment(plate, out=None, binary = False, show=True):
 				limits.append((j, i))
 		i += 1
 	if len(characters) == 1:
-		return divide_by_8(cleared), dashes
+		return None, None
+		#return divide_by_8(cleared), dashes
 	fixed = merge_or_split(characters, limits, cleared, dashes)
 	return fixed, dashes
 
@@ -102,7 +101,7 @@ def merge_or_split(characters, limits, plate, dashes):
 			if char.shape[1] > max_length:
 				max_length = char.shape[1]
 				max_length_ind = i
-		mid = int(char.shape[1]/2)
+		mid = int(max_length/2)
 		temp = []
 		if len(dashes) > 0:
 			if copied_dashes[0] == max_length_ind:

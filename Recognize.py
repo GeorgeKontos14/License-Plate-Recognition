@@ -4,7 +4,9 @@ import os
 import Segment
 import Helpers
 
-def segment_and_recognize(plate_image: np.ndarray) -> list:
+from character_recognition import get_license_plate_number
+
+def segment_and_recognize(plate_image: np.ndarray, reference_characters: list):
 	"""
 	In this file, you will define your own segment_and_recognize function.
 	To do:
@@ -20,7 +22,26 @@ def segment_and_recognize(plate_image: np.ndarray) -> list:
 	Hints:
 		You may need to define other functions.
 	"""
-	recognized_characters: list = []
-	chars = Segment.segment(plate_image)
+	chars, dashes = Segment.segment(plate_image, show=True)
+	if chars is None:
+		#print('None')
+		return [], ''
+	return get_license_plate_number(reference_characters, chars)
+
+def majority_characterwise(scene_outputs: list, scene_scores: list) -> str:
+	votes: list = [{} for i in range(6)]
+	#print(scene_outputs, scene_scores)
+	if len(scene_outputs) == 0:
+		return None
+
+	for characters, scores in zip(scene_outputs, scene_scores):
+		i = 0
+		for score, character in zip(scores, characters):
+			if character in votes[i]:
+				votes[i][character] += score
+			else:
+				votes[i][character] = score 
+
+			i += 1
 	
-	return recognized_characters
+	return ''.join(min(vote, key=vote.get) for vote in votes)

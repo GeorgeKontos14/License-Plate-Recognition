@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
 
 def difference_score(img: np.ndarray, reference_character: np.ndarray) -> np.array:
     """ 
@@ -72,14 +71,30 @@ def sift_descriptor(image_interest_patch: np.ndarray) -> np.ndarray:
 
     return result
 
-def euclidean_distance(p1: np.ndarray, p2: np.ndarray) -> float:
-    """ Calculates the euclidean distance between two points
+def get_license_plate_number(reference_characters: list, chars: list) -> str:
+    plate_num: str = ''
+    xor_scores: list = []
 
-        Parameters:
-        p1 (np.ndarray) 
-        p2 (np.ndarray)
+    if len(chars) == 6:
+        for char in chars:
+            score, pred_char = recognise_character(reference_characters, char)
+            plate_num += pred_char
+            xor_scores.append(score)
+    else:
+        scores: list = []
+        preds: list = []
 
-        Returns:
-        float: The distance between the two given points
-    """
-    return np.sqrt(np.sum(np.square(p1 - p2)))
+        for char in chars:
+            score, pred_char = recognise_character(reference_characters, char)
+            scores.append(score)
+            preds.append(pred_char)
+        
+        scores_max = np.argsort(scores)[:2].tolist()
+
+        for i, ch in enumerate(preds):
+            if i in scores_max:
+                continue
+            plate_num += ch
+            xor_scores.append(scores[i])
+
+    return xor_scores, plate_num

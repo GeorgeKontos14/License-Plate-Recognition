@@ -2,6 +2,7 @@ import argparse
 import os
 import CaptureFrame_Process
 import numpy
+from pre_processing_data import read_reference_characters
 
 
 # define the required arguments: video path(file_path), sample frequency(second), saving path for final result table
@@ -23,7 +24,8 @@ if __name__ == '__main__':
 	else:
 		output_path = args.output_path
 	# file_path = args.file_path
-	file_path = 'dataset\TrainingSet\Categorie I\Video7_2.avi'
+	file_path = 'dataset\TrainingSet\Categorie I\Video17_2.avi'
 	# sample_frequency = args.sample_frequency
 	sample_frequency = 5
-	CaptureFrame_Process.CaptureFrame_Process(file_path, sample_frequency, output_path, show=False)
+	reference_characters: list = read_reference_characters('./dataset/Lab07-Dataset')
+	CaptureFrame_Process.CaptureFrame_Process(file_path, sample_frequency, output_path, reference_characters, show=False)

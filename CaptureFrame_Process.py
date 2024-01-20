@@ -1,15 +1,5 @@
 import cv2
-import os
-import numpy as np
-import pandas as pd
-import Localization
-import Recognize
-import plate_rotation
-import Helpers
-
-import matplotlib.pyplot as plt
-from pre_processing_data import reshape_img
-from character_recognition import sift_descriptor
+import time
 
 def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
     """
@@ -27,6 +17,9 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
     """
 
     # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
+    output = open(save_path, "w")
+    output.write("License plate,Frame no.,Timestamp(seconds)\n")
+
     cap = cv2.VideoCapture(file_path)
     cap.set(cv2.CAP_PROP_FPS, sample_frequency)
     if cap.isOpened()== False: 
@@ -34,7 +27,8 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
     counter = 0
     prev = None
     start_scene = 1
-    scenes = 1
+    scene = []
+    start_time = time.time()
     while cap.isOpened():
         ret, frame = cap.read()
         if ret == True:
@@ -43,8 +37,14 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
             if show:
                 cv2.imshow('Frame', frame)
             if scene_change(prev, frame, start_scene, counter, sample_frequency):
+                # TODO: Run Localization - Rotation - Segmentation - Recognition Pipeline for all frames of the scene
+                # TODO: Majority vote - Also consider similarity with previous plate?
+                time_stamp = time.time()-start_time
+                output.write("XS-NB-23,"+str(counter)+","+str(time_stamp)+"\n")
                 start_scene = counter+sample_frequency
-                scenes += 1
+                scene = [frame]
+            else:
+                scene.append(frame)
             prev = frame
             counter += sample_frequency
             cap.set(cv2.CAP_PROP_POS_FRAMES, counter)
@@ -59,11 +59,11 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, show=True):
 
     # TODO: Implement actual algorithms for Recognizing Characters
 
-    output = open(save_path, "w")
-    output.write("License plate,Frame no.,Timestamp(seconds)\n")
+    # output = open(save_path, "w")
+    # output.write("License plate,Frame no.,Timestamp(seconds)\n")
 
     # TODO: REMOVE THESE (below) and write the actual values in `output`
-    output.write("XS-NB-23,34,1.822\n")
+    # output.write("XS-NB-23,34,1.822\n")
     # output.write("YOUR,STUFF,HERE\n")
     # TODO: REMOVE THESE (above) and write the actual values in `output`
 

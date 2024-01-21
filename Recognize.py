@@ -36,6 +36,7 @@ def majority_characterwise(scene_outputs: list, scene_scores: list) -> str:
 	#print(scene_outputs, scene_scores)
 	if len(scene_outputs) == 0:
 		return None
+	#print(scene_outputs)
 	for characters, scores in zip(scene_outputs, scene_scores):
 		i = 0
 		for score, character in zip(scores, characters):

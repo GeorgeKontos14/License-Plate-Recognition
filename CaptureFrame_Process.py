@@ -21,9 +21,11 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_chara
         3. save_path: final .csv file path
     Output: None
     """
-
+    start = time.time()
     data = process_video(file_path, sample_frequency, reference_characters)
     split_scenes(data, save_path)
+    end = time.time()-start
+    print(end)
     pass
 
 def process_video(file_path: str, sample_frequency: int, reference_characters) -> list:

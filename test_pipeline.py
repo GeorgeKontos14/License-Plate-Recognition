@@ -38,8 +38,8 @@ def iterate_dir(path, data=True):
                 scores, plate_num = Recognize.segment_and_recognize(plate, reference_characters)
                 # print(scores)
                 print(plate_num)
-            Helpers.plotImage(frame)
+            #Helpers.plotImage(frame)
 
 if __name__ == '__main__':
-    path = "dataset/Frames/Category_II"
+    path = "dataset/Frames/Category_I"
     iterate_dir(path)

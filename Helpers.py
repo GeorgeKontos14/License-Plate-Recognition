@@ -67,6 +67,24 @@ def adaptive_thresholding(image, size, c):
                 background[x][y] = 255
     return background, foreground
 
+def remove_black_rows(img):
+	top = 0
+	bottom = img.shape[0]-1
+	while np.count_nonzero(img[top]) == 0:
+		top += 1
+	while np.count_nonzero(img[bottom]) == 0:
+		bottom -= 1
+	return img[top:bottom, :]
+
+def remove_black_columns(img):
+    columns = np.count_nonzero(img, axis = 0)
+    left = 0
+    right = len(columns)-1
+    while columns[left] == 0 and left < len(columns)-1:
+        left += 1
+    while columns[right] == 0 and right > left:
+        right -= 1
+    return img[:, left:right]
 
 def drawBoxes(boxes, image, channel="green"): 
     copied = np.copy(image)

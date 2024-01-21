@@ -40,7 +40,7 @@ def segment(plate, out=None, binary = False, show=True):
 			end += 1
 			if end == len(columns):
 				break
-		letter = remove_black_rows(cleared[:, start:end])
+		letter = Helpers.remove_black_rows(cleared[:, start:end])
 		if is_dash(letter):
 			start = end+1
 			if start >= len(columns):
@@ -140,7 +140,7 @@ def merge_or_split(characters, limits, plate, dashes):
 			else:
 				new_lims = (copied_limits[i][0], copied_limits[i+1][0])
 				temp_lims.append(new_lims)
-				char = remove_black_rows(plate[:, new_lims[0]:new_lims[1]])
+				char = Helpers.remove_black_rows(plate[:, new_lims[0]:new_lims[1]])
 				temp.append(char)
 		copied_chars = temp
 		copied_limits = temp_lims		
@@ -169,16 +169,6 @@ def can_be_dash(chars_length, dashes_length):
 	if chars_length == 3 and dashes_length == 1:
 		return True
 	return False
-
-
-def remove_black_rows(letter):
-	top = 0
-	bottom = letter.shape[0]-1
-	while np.count_nonzero(letter[top]) == 0:
-		top += 1
-	while np.count_nonzero(letter[bottom]) == 0:
-		bottom -= 1
-	return letter[top:bottom, :]
 
 def dilate_or_erode(plate):
 	struct_element = np.array([[0,1,0],

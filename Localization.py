@@ -27,7 +27,7 @@ def plate_detection(image):
     #masked = masked_image(image, 14, 27,144,238, 99, 229) #78, 92, 60
     masked = masked_image(image, 13, 28, 136,246,89, 240) #78, 100, 80
     #denoise = close(masked)
-    plates, boxes = crop_plates(masked, image)
+    plates = crop_plates(masked, image)
     #Helpers.drawBoxes(boxes, image)
     #for plate in plates:
     #    Helpers.plotImage(plate, "")
@@ -55,45 +55,50 @@ def crop_plates(masked, original):
     It returns a list of the cropped images.
     """
     bgr = cv2.cvtColor(masked, cv2.COLOR_HSV2BGR)
-    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-    binary = np.copy(gray)
-    binary[gray!=0] = 255
+    binary = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    binary[binary > 50] = 255
     binary = Helpers.close(binary)
-    i = 0
-    images = []
-    boxes = []
-    while i < binary.shape[0]:
-        if len(images) == 2:
+    plates = []
+    columns = np.count_nonzero(binary, axis = 0)
+    start = 0
+    while start < len(columns):
+        if columns[start] == 0:
+            start += 1
+            if start >= len(columns)-1:
+                break
+            continue
+        end = start+1
+        while columns[end] > 0:
+            end += 1
+            if end == len(columns):
+                break
+        if end - start < 65:
+            start = end+1
+            continue
+        rows = np.count_nonzero(binary[:, start:end], axis = 1)
+        max_start = 0
+        max_end = len(rows)-1
+        max_count = 0
+        cur_start = cur_end = 0
+        while cur_start < len(rows)-1:
+            if rows[cur_start] == 0:
+                cur_start += 1
+                if cur_start >= len(rows)-1:
+                    break
+                continue
+            cur_end = cur_start+1
+            while rows[cur_end] > 0:
+                cur_end += 1
+                if cur_end >= len(rows):
+                    break
+            cur_count = np.sum(rows[cur_start:cur_end])
+            if cur_count > max_count:
+                max_start = cur_start
+                max_end = cur_end
+                max_count = cur_count
+            cur_start = cur_end+1
+        plates.append(original[max_start:max_end, start:end])
+        start = end+1
+        if len(plates) == 2:
             break
-        j = 0
-        while j < binary.shape[1]:
-            if binary[i][j] != 0:
-                old_i = i
-                while np.count_nonzero(binary[i, max(0, j-100):min(binary.shape[1], j+100)]) != 0 and i < binary.shape[0]-1:
-                    i += 1
-                a = 0
-                while np.count_nonzero(binary[old_i:i, a]) == 0 and a < binary.shape[1]-1:
-                    a += 1
-                old_a = a
-                while np.count_nonzero(binary[old_i:i, a]) != 0 and a < binary.shape[1]-1:
-                    a += 1
-                if a-old_a >= 65: # and (a-old_a)*(i-old_i) >= 1750: #and a-old_a >= 3*(i-old_i) and a-old_a <= 6*(i-old_i):
-                    #if np.count_nonzero(gray[old_i:i, old_a:a])/((i-old_i)*(a-old_a)) > 0.4:
-                    images.append(original[old_i:i, old_a:a])
-                    boxes.append(Helpers.BoundingBox(old_a, old_i, a-1, i-1))
-                    binary[old_i:i, old_a:a] = 0
-                    i = min(old_i + 1, binary.shape[0])
-                    j = 0
-                else:
-                    i = min(old_i + 1, binary.shape[0])
-                    j = min(a, binary.shape[1])
-            j += 1
-        i += 1
-    if len(boxes) == 2:
-        if boxes[0].is_close(boxes[1]):
-            box = boxes[0].merge(boxes[1])
-            boxes = []
-            boxes.append(box)
-            images = []
-            images.append(original[box.y1:box.y2, box.x1:box.x2])
-    return images, boxes
+    return plates

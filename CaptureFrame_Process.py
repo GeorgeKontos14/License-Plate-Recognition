@@ -5,6 +5,7 @@ import plate_rotation
 import Recognize
 import Segment
 import Helpers
+import numpy as np
 
 def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_characters, show=True):
     """
@@ -28,42 +29,49 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_chara
     cap.set(cv2.CAP_PROP_FPS, sample_frequency)
     if cap.isOpened()== False: 
         print("Error opening video stream or file")
-    counter = 0
-    prev = None
-    start_scene = 1
-    scene_outputs = []
-    scene_scores = []
-    start_time = time.time()
-    frame_no = 1
+    counter: int = 0
+    prev: np.ndarray = None
+    start_scene: int = 1
+    scene_outputs: list = []
+    scene_scores: list = []
+    start_time: float = time.time()
+    frame_no: int = 1
+    min_score: float = 6
+    last_out: str = ''
     while cap.isOpened():
         ret, frame = cap.read()
         if ret == True:
             if counter == 0:
                 prev = frame
+                # print("Set prev")
             if show:
                 cv2.imshow('Frame', frame)
-            if scene_change(prev, frame, start_scene, counter, sample_frequency):
-                # TODO: Majority vote - Also consider similarity with previous plate
-                #print(scene_outputs)
-                pred_plate = Recognize.majority_characterwise(scene_outputs, scene_scores)
-                # print(pred_plate)
-                if pred_plate is None or len(pred_plate) == 0:
-                    continue
-                time_stamp = time.time()-start_time
-                output.write(pred_plate+','+str(counter)+","+str(time_stamp)+"\n")
-                start_scene = counter+sample_frequency
+            if scene_change(prev, frame, start_scene, counter-sample_frequency, sample_frequency):
+                # print("Change")
+                # Helpers.plotImage(prev)
+                # Helpers.plotImage(frame)
+                pred_plate: str = Recognize.majority_characterwise(scene_outputs, scene_scores)
+                start_scene = counter
                 scene_outputs = []
                 scene_scores = []
+                min_score = 6
+                if pred_plate is None or len(pred_plate) == 0 or pred_plate == last_out:
+                    prev = frame
+                    continue
+                time_stamp: float = time.time()-start_time
+                output.write(pred_plate+','+str(frame_no)+","+str(time_stamp)+"\n")
+                last_out = pred_plate
             score, out = run_scene_pipeline(frame, reference_characters)
             if out != None:
-                frame_no = counter
+                if np.sum(score) < min_score:
+                    frame_no = counter
+                    min_score = np.sum(score)
                 scene_outputs.append(out)
                 scene_scores.append(score)
             prev = frame
             counter += sample_frequency
-            #print(counter)
             cap.set(cv2.CAP_PROP_POS_FRAMES, counter)
-            if cv2.waitKey(25) & 0xFF == ord('q'):
+            if cv2.waitKey(0) & 0xFF == ord('q'):
                 break
         else:
             break
@@ -74,11 +82,11 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_chara
     if pred_plate is None:
         return
     time_stamp = time.time()-start_time
-    output.write(pred_plate+','+str(counter)+","+str(time_stamp)+"\n")
+    output.write(pred_plate+','+str(frame_no)+","+str(time_stamp)+"\n")
 
     pass
 
-def scene_change(before, after, start_scene, before_no, frequency):
+def scene_change(before: np.ndarray, after: np.ndarray, start_scene: int, before_no: int, frequency: int) -> bool:
     """
     Returns true if the two frames are from different scenes; false otherwise
     """
@@ -87,36 +95,29 @@ def scene_change(before, after, start_scene, before_no, frequency):
     cv2.normalize(hist_before, hist_before, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
     hist_after = cv2.calcHist([after], [0,1,2], None, [256,256,256], [0, 256, 0, 256, 0, 256])
     cv2.normalize(hist_after, hist_after, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
-    comp = cv2.compareHist(hist_before, hist_after, cv2.HISTCMP_CORREL)
-    # if comp < 0.1:
-    #     return True
+    comp: float = cv2.compareHist(hist_before, hist_after, cv2.HISTCMP_CORREL)
     if before_no+frequency-start_scene > 24 and comp < 0.35:
         return True
     return False
 
-def run_scene_pipeline(frame, reference_characters):
+def run_scene_pipeline(frame: np.ndarray, reference_characters):
     """
     Gets a scene as an array of frames as input and returns the output for each frame as output
     """
-    output = ""
-    plates = Localization.plate_detection(frame)
+    output: str = ""
+    plates: list = Localization.plate_detection(frame)
     if len(plates) == 0:
         return None, None
     for plate in plates:
         if plate.shape[0]*plate.shape[1] > 0.8*frame.shape[0]*frame.shape[1]:
             return None, None
-        #Helpers.plotImage(plate)
         try:
-            rotated = plate_rotation.rotation_pipeline(plate)
+            rotated: np.ndarray = plate_rotation.rotation_pipeline(plate)
         except Exception:
             return None, None
         if rotated is None:
             continue
-        #Helpers.plotImage(rotated)
         scores, output = Recognize.segment_and_recognize(rotated, reference_characters)
-        #print(scores)
-        # print(output)
-        #print(scores)
         if len(scores) == 0:
             return None, None
 

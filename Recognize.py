@@ -47,24 +47,24 @@ def majority_characterwise(scene_outputs: list, scene_scores: list) -> str:
 
 			i += 1
 	
-	return ''.join(min(vote, key=vote.get) for vote in votes)
+	return add_dashes(''.join(min(vote, key=vote.get) for vote in votes))
 
 
 
-def add_dashes(output):
+def add_dashes(output: str) -> str:
 	"""
 	Adds dashes to a given license plate
 	"""
-	prev = output[0].isdigit()
-	res = ''
+	prev: bool = output[0].isdigit()
+	res: str = ''
 	res += output[0]
-	dashes = 0
+	dashes: int = 0
 	for i in range(1, 6):
 		if dashes == 2:
 			res += output[i]
 			continue
-		char = output[i]
-		cur = char.isdigit()
+		char: str = output[i]
+		cur: bool = char.isdigit()
 		if cur == prev:
 			res += char
 		elif cur != prev:
@@ -72,7 +72,10 @@ def add_dashes(output):
 			dashes += 1
 		prev = cur
 	if dashes == 1:
-		res = res[:5]+'-'+res[5:]
+		if res[4] == '-':
+			res = res[:2]+'-'+res[2:]
+		else:
+			res = res[:5]+'-'+res[5:]
 	return res
 
 

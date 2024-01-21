@@ -41,5 +41,5 @@ def iterate_dir(path, data=True):
             #Helpers.plotImage(frame)
 
 if __name__ == '__main__':
-    path = "dataset/Frames/Category_I"
+    path = "dataset/Frames/Category_III"
     iterate_dir(path)

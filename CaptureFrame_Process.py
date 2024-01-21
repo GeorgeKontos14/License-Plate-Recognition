@@ -46,8 +46,8 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_chara
                 # TODO: Majority vote - Also consider similarity with previous plate
                 #print(scene_outputs)
                 pred_plate = Recognize.majority_characterwise(scene_outputs, scene_scores)
-                #print(pred_plate)
-                if pred_plate is None:
+                # print(pred_plate)
+                if pred_plate is None or len(pred_plate) == 0:
                     continue
                 time_stamp = time.time()-start_time
                 output.write(pred_plate+','+str(counter)+","+str(time_stamp)+"\n")
@@ -115,7 +115,7 @@ def run_scene_pipeline(frame, reference_characters):
         #Helpers.plotImage(rotated)
         scores, output = Recognize.segment_and_recognize(rotated, reference_characters)
         #print(scores)
-        #print(output)
+        # print(output)
         #print(scores)
         if len(scores) == 0:
             return None, None

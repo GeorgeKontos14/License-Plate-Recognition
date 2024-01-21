@@ -4,6 +4,7 @@ import pandas as pd
 import Localization
 import Recognize
 import plate_rotation
+import Helpers
 
 from character_recognition import get_license_plate_number
 from pre_processing_data import read_image, read_reference_characters
@@ -35,8 +36,9 @@ def iterate_dir(path, data=True):
             print(filename.name)
             for plate in plates:
                 scores, plate_num = Recognize.segment_and_recognize(plate, reference_characters)
-                print(scores)
+                # print(scores)
                 print(plate_num)
+            Helpers.plotImage(frame)
 
 if __name__ == '__main__':
     path = "dataset/Frames/Category_II"

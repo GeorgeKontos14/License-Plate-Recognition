@@ -28,6 +28,6 @@ def read_reference_characters(folder_path: str) -> list:
     for file_name in files:
         reference_img: np.ndarray = cv2.imread(folder_path + '/' + file_name)
         if reference_img is not None:
-            reference_characters.append((reference_img, file_name[0]))
+            reference_characters.append((reference_img, file_name[0].upper()))
     
     return reference_characters 

@@ -22,68 +22,76 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_chara
     Output: None
     """
     
-    output = open(save_path, "w")
-    output.write("License plate,Frame no.,Timestamp(seconds)\n")
+    # output = open(save_path, "w")
+    # output.write("License plate,Frame no.,Timestamp(seconds)\n")
 
-    cap = cv2.VideoCapture(file_path)
-    cap.set(cv2.CAP_PROP_FPS, sample_frequency)
-    if cap.isOpened()== False: 
-        print("Error opening video stream or file")
-    counter: int = 0
-    prev: np.ndarray = None
-    start_scene: int = 1
-    scene_outputs: list = []
-    scene_scores: list = []
-    start_time: float = time.time()
-    frame_no: int = 1
-    min_score: float = 6
-    last_out: str = ''
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if ret == True:
-            if counter == 0:
-                prev = frame
-                # print("Set prev")
-            if show:
-                cv2.imshow('Frame', frame)
-            if scene_change(prev, frame, start_scene, counter-sample_frequency, sample_frequency):
-                # print("Change")
-                # Helpers.plotImage(prev)
-                # Helpers.plotImage(frame)
-                pred_plate: str = Recognize.majority_characterwise(scene_outputs, scene_scores)
-                start_scene = counter
-                scene_outputs = []
-                scene_scores = []
-                min_score = 6
-                if pred_plate is None or len(pred_plate) == 0 or pred_plate == last_out:
-                    prev = frame
-                    continue
-                time_stamp: float = time.time()-start_time
-                output.write(pred_plate+','+str(frame_no)+","+str(time_stamp)+"\n")
-                last_out = pred_plate
-            score, out = run_scene_pipeline(frame, reference_characters)
-            if out != None:
-                if np.sum(score) < min_score:
-                    frame_no = counter
-                    min_score = np.sum(score)
-                scene_outputs.append(out)
-                scene_scores.append(score)
-            prev = frame
-            counter += sample_frequency
-            cap.set(cv2.CAP_PROP_POS_FRAMES, counter)
-            if cv2.waitKey(0) & 0xFF == ord('q'):
-                break
-        else:
-            break
-    cap.release()
-    cv2.destroyAllWindows()
+    # cap = cv2.VideoCapture(file_path)
+    # cap.set(cv2.CAP_PROP_FPS, sample_frequency)
+    # if cap.isOpened()== False: 
+    #     print("Error opening video stream or file")
+    # counter: int = 0
+    # # prev: np.ndarray = None
+    # # start_scene: int = 1
+    # # scene_outputs: list = []
+    # # scene_scores: list = []
+    # start_time: float = time.time()
+    # rows: list = []
+    # # frame_no: int = 1
+    # # min_score: float = 6
+    # # last_out: str = ''
+    # # stamps = []
+    # while cap.isOpened():
+    #     ret, frame = cap.read()
+    #     if ret == True:
+    #         # if counter == 0:
+    #         #     prev = frame
+    #         #     # print("Set prev")
+    #         if show:
+    #             cv2.imshow('Frame', frame)
+    #         # if scene_change(prev, frame, start_scene, counter-sample_frequency, sample_frequency):
+    #         #     # print("Change")
+    #         #     # Helpers.plotImage(prev)
+    #         #     # Helpers.plotImage(frame)
+    #         #     pred_plate: str = Recognize.majority_characterwise(scene_outputs, scene_scores)
+    #         #     start_scene = counter
+    #         #     scene_outputs = []
+    #         #     scene_scores = []
+    #         #     min_score = 6
+    #         #     if pred_plate is None or len(pred_plate) == 0 or pred_plate == last_out:
+    #         #         prev = frame
+    #         #         continue
+    #         #     time_stamp: float = time.time()-start_time
+    #         #     stamps.append(time_stamp)
+    #         #     output.write(pred_plate+','+str(frame_no)+","+str(time_stamp)+"\n")
+    #         #     last_out = pred_plate
+    #         # score, out = run_scene_pipeline(frame, reference_characters)
+    #         # if out != None:
+    #         #     time_stamp: float = time.time()-start_time
+    #         #     output.write(Recognize.add_dashes(out)+','+str(counter)+","+str(time_stamp)+"\n")
+    #         #     # if np.sum(score) < min_score:
+    #         #     #     frame_no = counter
+    #         #     #     min_score = np.sum(score)
+    #         #     # scene_outputs.append(out)
+    #         #     # scene_scores.append(score)
+    #         # prev = frame
+    #         counter += sample_frequency
+    #         cap.set(cv2.CAP_PROP_POS_FRAMES, counter)
+    #         if cv2.waitKey(0) & 0xFF == ord('q'):
+    #             break
+    #     else:
+    #         break
+    # cap.release()
+    # cv2.destroyAllWindows()
 
-    pred_plate = Recognize.majority_characterwise(scene_outputs, scene_scores)
-    if pred_plate is None:
-        return
-    time_stamp = time.time()-start_time
-    output.write(pred_plate+','+str(frame_no)+","+str(time_stamp)+"\n")
+    # pred_plate = Recognize.majority_characterwise(scene_outputs, scene_scores)
+    # if pred_plate is None:
+    #     return
+    # time_stamp = time.time()-start_time
+    # output.write(pred_plate+','+str(frame_no)+","+str(time_stamp)+"\n")
+    # print(stamps)
 
+    data = process_video(file_path, sample_frequency, reference_characters)
+    split_scenes(data, save_path)
     pass
 
 def scene_change(before: np.ndarray, after: np.ndarray, start_scene: int, before_no: int, frequency: int) -> bool:
@@ -120,5 +128,91 @@ def run_scene_pipeline(frame: np.ndarray, reference_characters):
         scores, output = Recognize.segment_and_recognize(rotated, reference_characters)
         if len(scores) == 0:
             return None, None
+        # print(output)
 
     return scores, output
+
+def process_video(file_path: str, sample_frequency: int, reference_characters) -> list:
+    """
+    Given a video and the sampling frequency, performs the required analysis on the video's frames
+    """
+
+    # Open the video and initialize variables
+    cap = cv2.VideoCapture(file_path)
+    cap.set(cv2.CAP_PROP_FPS, sample_frequency)
+    if cap.isOpened()== False: 
+        print("Error opening video stream or file")
+    counter: int = 0
+    start_time: float = time.time()
+    rows: list = []
+
+    # Iterate the frames of the video with the specified sample frequency
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if ret == True:
+            # Run the pipeline for the given plate
+            plates: list = Localization.plate_detection(frame)
+            for plate in plates:
+                if plate.shape[0]*plate.shape[1] > 0.8*frame.shape[0]*frame.shape[1]:
+                    continue
+                try:
+                    rotated: np.ndarray = plate_rotation.rotation_pipeline(plate)
+                except Exception:
+                    continue
+                if rotated is None:
+                    continue
+                
+                scores, output = Recognize.segment_and_recognize(rotated, reference_characters)
+                if len(scores) == 0:
+                    continue
+
+                # Add the data for the given frame on the list of rows
+                end: float = time.time()-start_time
+                if len(output) == 6:
+                    rows.append((scores, output, counter, end))
+
+            # Move to the next frame
+            counter += sample_frequency
+            cap.set(cv2.CAP_PROP_POS_FRAMES, counter)
+            if cv2.waitKey(0) & 0xFF == ord('q'):
+                break
+        else:
+            break
+    # Release the video capture
+    cap.release()
+    cv2.destroyAllWindows()
+
+    # Return the video data
+    return rows
+
+def hamming_distance(s1: str, s2: str) -> int:
+    return sum(c1 != c2 for c1,c2 in zip(s1, s2))
+
+def split_scenes(data: list, save_path: str):
+    """
+    Given a list of data, split it to scenes and calculate the majority vote for the data of that scene 
+    """
+
+    # Open the writer to the csv file
+    output = open(save_path, "w")
+    output.write("License plate,Frame no.,Timestamp(seconds)\n")
+
+    scene_outputs: list = []
+    scene_scores: list = []
+    scene_frame = data[0][2]
+    scene_time = data[0][3]
+    comp: str = data[0][1]
+    for row in data:
+        current_output: str = row[1]
+        if hamming_distance(current_output, comp) > 2:
+            out = Recognize.majority_characterwise(scene_outputs, scene_scores)
+            to_write = out+','+str(scene_frame)+','+str(scene_time)+'\n'
+            output.write(to_write)
+            scene_outputs = []
+            scene_scores = []
+            scene_frame = row[2]
+            scene_time = row[3]
+        comp = current_output
+        scene_outputs.append(current_output)
+        scene_scores.append(row[0])
+    return

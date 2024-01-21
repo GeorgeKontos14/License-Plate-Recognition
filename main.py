@@ -27,6 +27,6 @@ if __name__ == '__main__':
 	#file_path = 'dataset\TrainingSet\Categorie II\Video225.avi'
 	file_path = 'dataset\\trainingvideo.avi'
 	# sample_frequency = args.sample_frequency
-	sample_frequency = 3
+	sample_frequency = 5
 	reference_characters: list = read_reference_characters('./dataset/Lab07-Dataset')
 	CaptureFrame_Process.CaptureFrame_Process(file_path, sample_frequency, output_path, reference_characters, show=False)

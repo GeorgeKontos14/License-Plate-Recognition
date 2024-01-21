@@ -25,7 +25,7 @@ if __name__ == '__main__':
 		output_path = args.output_path
 	file_path = args.file_path
 	#file_path = 'dataset\TrainingSet\Categorie II\Video225.avi'
-	file_path = 'dataset\\trainingvideo.avi'
+	# file_path = 'dataset\\trainingvideo.avi'
 	# sample_frequency = args.sample_frequency
 	sample_frequency = 5
 	reference_characters: list = read_reference_characters('./dataset/Lab07-Dataset')

@@ -63,6 +63,7 @@ def process_video(file_path: str, sample_frequency: int, reference_characters) -
                 # Add the data for the given frame on the list of rows
                 end: float = time.time()-start_time
                 if len(output) == 6:
+                    print("added")
                     rows.append((scores, output, counter, end))
 
             # Move to the next frame
@@ -86,7 +87,6 @@ def split_scenes(data: list, save_path: str):
     """
     Given a list of data, split it to scenes and calculate the majority vote for the data of that scene 
     """
-    print(len(data))
     # Open the writer to the csv file
     output = open(save_path, "w")
     output.write("License plate,Frame no.,Timestamp(seconds)\n")

@@ -63,7 +63,6 @@ def process_video(file_path: str, sample_frequency: int, reference_characters) -
                 # Add the data for the given frame on the list of rows
                 end: float = time.time()-start_time
                 if len(output) == 6:
-                    print("added")
                     rows.append((scores, output, counter, end))
 
             # Move to the next frame

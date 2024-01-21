@@ -22,11 +22,14 @@ def segment_and_recognize(plate_image: np.ndarray, reference_characters: list):
 	Hints:
 		You may need to define other functions.
 	"""
-	chars, dashes = Segment.segment(plate_image, show=False)
-	if chars is None:
-		#print('None')
-		return [], ''
-	return get_license_plate_number(reference_characters, chars)
+	# chars, dashes = Segment.segment(plate_image, show=False)
+	# if chars is None:
+	# 	#print('None')
+	# 	return [], ''
+	
+	bounding_boxes: list = character_segmentation(plate_image)
+
+	return get_license_plate_number(reference_characters, bounding_boxes)
 
 def majority_characterwise(scene_outputs: list, scene_scores: list) -> str:
 	votes: list = [{} for i in range(6)]
@@ -72,3 +75,38 @@ def add_dashes(output):
 		res = res[:5]+'-'+res[5:]
 	return res
 
+
+def character_segmentation(plate_image: np.ndarray) -> list:
+	plate: np.ndarray = cv2.cvtColor(plate_image, cv2.COLOR_BGR2GRAY)
+	plate = Helpers.isodata_thresholding(plate)
+	plate = Segment.clear_top_bottom(plate)
+	plate = np.array(plate, np.uint8)
+	contours, _ = cv2.findContours(plate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+	if len(contours) == 0:
+		return []
+
+	mean_area: float = 0
+	plate_area: float = plate.shape[0] * plate.shape[1]
+	for contour in contours:
+		contour_area = cv2.contourArea(contour)
+		if contour_area < plate_area * 0.5:
+			mean_area += contour_area
+
+	mean_area /= len(contours)
+	threshold_area: float = mean_area * 0.5
+
+	bounding_boxes: list = []
+
+	for contour in contours:
+		contour_area: float = cv2.contourArea(contour)
+		if contour_area >= plate_area * 0.7:
+			continue
+
+		if contour_area > threshold_area:
+			x, y, w, h = cv2.boundingRect(contour)
+			bounding_boxes.append((plate[y:y+h, x:x+w], x))
+	
+	bounding_boxes.sort(key=lambda x: x[1])
+
+	return bounding_boxes

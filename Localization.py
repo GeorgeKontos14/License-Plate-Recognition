@@ -46,9 +46,8 @@ def masked_image(image, minH, maxH, minS, maxS, minV, maxV):
     colorMax = np.array([maxH, maxS, maxV])
 
     mask = cv2.inRange(hsv, colorMin, colorMax)
-    masked = np.copy(hsv)
-    masked[mask == 0] = [0,0,0]
-    return masked
+    hsv[mask == 0] = [0,0,0]
+    return hsv
 
 def crop_plates(masked, original):
     """

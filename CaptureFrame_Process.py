@@ -86,11 +86,10 @@ def split_scenes(data: list, save_path: str):
     """
     Given a list of data, split it to scenes and calculate the majority vote for the data of that scene 
     """
-
+    print(len(data))
     # Open the writer to the csv file
     output = open(save_path, "w")
     output.write("License plate,Frame no.,Timestamp(seconds)\n")
-
     scene_outputs: list = []
     scene_scores: list = []
     scene_frame = data[0][2]

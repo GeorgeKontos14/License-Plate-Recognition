@@ -1,0 +1,10 @@
+Task,Kontos' Work Percentage,Baktalias' Work Percentage
+Localisation,70%,30%
+Rotation,0%,100%
+Character segmentation,30%,70%
+Recognition,0%,100%
+Scene Change,100%,0%
+Majority Voting,0%,100%
+Pipeline setup,100%,0%
+Evaluation,100%,0%
+Total,50%,50%

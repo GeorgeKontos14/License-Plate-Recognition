@@ -3,9 +3,8 @@ import time
 import Localization
 import plate_rotation
 import Recognize
-import Segment
-import Helpers
 import numpy as np
+import Helpers
 
 def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_characters, show=True):
     """
@@ -21,11 +20,8 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_chara
         3. save_path: final .csv file path
     Output: None
     """
-    start = time.time()
     data = process_video(file_path, sample_frequency, reference_characters)
     split_scenes(data, save_path)
-    end = time.time()-start
-    print(end)
     pass
 
 def process_video(file_path: str, sample_frequency: int, reference_characters) -> list:
@@ -57,15 +53,16 @@ def process_video(file_path: str, sample_frequency: int, reference_characters) -
                     continue
                 if rotated is None:
                     continue
-                
-                scores, output = Recognize.segment_and_recognize(rotated, reference_characters)
-                if len(scores) == 0:
-                    continue
+                localized = Localization.plate_detection(rotated)
+                for l in localized:
+                    scores, output = Recognize.segment_and_recognize(rotated, reference_characters)
+                    if len(scores) == 0:
+                        continue
 
                 # Add the data for the given frame on the list of rows
-                end: float = time.time()-start_time
-                if len(output) == 6:
-                    rows.append((scores, output, counter, end))
+                    end: float = time.time()-start_time
+                    if len(output) == 6:
+                        rows.append((scores, output, counter, end))
 
             # Move to the next frame
             counter += sample_frequency
@@ -81,9 +78,6 @@ def process_video(file_path: str, sample_frequency: int, reference_characters) -
     # Return the video data
     return rows
 
-def hamming_distance(s1: str, s2: str) -> int:
-    return sum(c1 != c2 for c1,c2 in zip(s1, s2))
-
 def split_scenes(data: list, save_path: str):
     """
     Given a list of data, split it to scenes and calculate the majority vote for the data of that scene 
@@ -98,7 +92,7 @@ def split_scenes(data: list, save_path: str):
     comp: str = data[0][1]
     for row in data:
         current_output: str = row[1]
-        if hamming_distance(current_output, comp) > 2:
+        if Helpers.hamming_distance(current_output, comp) > 2:
             out = Recognize.majority_characterwise(scene_outputs, scene_scores)
             to_write = out+','+str(scene_frame)+','+str(scene_time)+'\n'
             output.write(to_write)

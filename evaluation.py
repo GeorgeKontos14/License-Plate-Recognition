@@ -84,7 +84,7 @@ if __name__ == '__main__':
 			else:
 				finalResult = 'FP'
 				FP[cat] = FP[cat]+1
-		print('%4d'%(i+1),'%14s'%ground_truth['License plate'][i],'%10s'%finalResult)
+		print('%4d'%i,'%14s'%ground_truth['License plate'][i],'%10s'%finalResult)
 
 	output = np.zeros((5, numCategories*2+2))
 	for i in range(numCategories):

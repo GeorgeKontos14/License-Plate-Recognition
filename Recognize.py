@@ -1,7 +1,5 @@
 import cv2
 import numpy as np
-import os
-import Segment
 import Helpers
 
 from character_recognition import get_license_plate_number
@@ -81,11 +79,10 @@ def add_dashes(output: str) -> str:
 
 def character_segmentation(plate_image: np.ndarray) -> list:
 	plate: np.ndarray = cv2.cvtColor(plate_image, cv2.COLOR_BGR2GRAY)
-	plate = Helpers.isodata_thresholding(plate)
-	plate = Segment.clear_top_bottom(plate)
+	plate = cv2.adaptiveThreshold(plate, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 11)
+	plate = Helpers.clear_top_bottom(plate)
 	plate = np.array(plate, np.uint8)
 	contours, _ = cv2.findContours(plate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
 	if len(contours) == 0:
 		return []
 

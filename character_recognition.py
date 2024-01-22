@@ -50,25 +50,9 @@ def get_license_plate_number(reference_characters: list, chars: list) -> str:
 
     if len(chars) == 6:
         for char in chars:
-            score, pred_char = recognise_character(reference_characters, char[0])
+            score, pred_char = give_label_lowest_score(char[0], reference_characters)
             plate_num += pred_char
             xor_scores.append(score)
-    # else:
-        # scores: list = []
-        # preds: list = []
-
-        # for char in chars:
-        #     score, pred_char = recognise_character(reference_characters, char)
-        #     scores.append(score)
-        #     preds.append(pred_char)
-        
-        # scores_max = np.argsort(scores)[:2].tolist()
-
-        # for i, ch in enumerate(preds):
-        #     if i in scores_max:
-        #         continue
-        #     plate_num += ch
-        #     xor_scores.append(scores[i])
 
     return xor_scores, plate_num
 

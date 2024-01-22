@@ -1,18 +1,12 @@
 import cv2
-import os
-import numpy as np
-import pandas as pd
+import time
 import Localization
-import Recognize
 import plate_rotation
+import Recognize
+import numpy as np
 import Helpers
 
-from character_recognition import calculate_perimeter_area_vector, give_label_lowest_score
-from kd_tree import HeapEntry
-from pre_processing_data import reshape_img
-
-
-def CaptureFrame_Process(file_path, sample_frequency, save_path):
+def CaptureFrame_Process(file_path, sample_frequency, save_path, reference_characters, show=True):
     """
     In this file, you will define your own CaptureFrame_Process funtion. In this function,
     you need three arguments: file_path(str type, the video file), sample_frequency(second), save_path(final results saving path).
@@ -26,79 +20,87 @@ def CaptureFrame_Process(file_path, sample_frequency, save_path):
         3. save_path: final .csv file path
     Output: None
     """
+    data = process_video(file_path, sample_frequency, reference_characters)
+    split_scenes(data, save_path)
+    pass
 
-    # TODO: Read frames from the video (saved at `file_path`) by making use of `sample_frequency`
-    path = "dataset/Evaluation/Category_II"
-    iterate_dir(path)
-    #frame = cv2.imread("dataset/Frames/Category_I/plate31.jpg")
-    #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    #frame[frame >= 125] = 255
-    #frame[frame < 125] = 0
-    #Helpers.plotImage(frame, cmapType="gray")
-    #characters = Recognize.segment(frame)
-    #for char in characters:
-    #    Helpers.plotImage(char, cmapType="gray")
-    #print(len(characters))
-    #plates = Localization.plate_detection(frame)
-    #for plate in plates:
-    #    rotated = plate_rotation.rotation_pipeline(plate)
-    #    chars = Recognize.segment(rotated)
-    #    for char in chars:
-    #        Helpers.plotImage(char, cmapType="gray")
-            
+def process_video(file_path: str, sample_frequency: int, reference_characters) -> list:
+    """
+    Given a video and the sampling frequency, performs the required analysis on the video's frames
+    """
 
-    #    print(len(chars))
-    #    print(dashes)
-    """cap = cv2.VideoCapture(file_path)
+    # Open the video and initialize variables
+    cap = cv2.VideoCapture(file_path)
+    cap.set(cv2.CAP_PROP_FPS, sample_frequency)
+    if cap.isOpened()== False: 
+        print("Error opening video stream or file")
+    counter: int = 0
+    start_time: float = time.time()
+    rows: list = []
+
+    # Iterate the frames of the video with the specified sample frequency
     while cap.isOpened():
         ret, frame = cap.read()
         if ret == True:
-            cv2.imshow('Frame', frame)
+            # Run the pipeline for the given plate
+            plates: list = Localization.plate_detection(frame)
+            for plate in plates:
+                if plate.shape[0]*plate.shape[1] > 0.8*frame.shape[0]*frame.shape[1]:
+                    continue
+                try:
+                    rotated: np.ndarray = plate_rotation.rotation_pipeline(plate)
+                except Exception:
+                    continue
+                if rotated is None:
+                    continue
+                localized = Localization.plate_detection(rotated)
+                for l in localized:
+                    scores, output = Recognize.segment_and_recognize(rotated, reference_characters)
+                    if len(scores) == 0:
+                        continue
+
+                # Add the data for the given frame on the list of rows
+                    end: float = time.time()-start_time
+                    if len(output) == 6:
+                        rows.append((scores, output, counter, end))
+
+            # Move to the next frame
+            counter += sample_frequency
+            cap.set(cv2.CAP_PROP_POS_FRAMES, counter)
+            if cv2.waitKey(0) & 0xFF == ord('q'):
+                break
         else:
             break
+    # Release the video capture
     cap.release()
-    cv2.destroyAllWindows()"""
+    cv2.destroyAllWindows()
 
-    # TODO: Implement actual algorithms for Localizing Plates
-    #plates = Localization.plate_detection(frame)
-    # TODO: Implement actual algorithms for Recognizing Characters
+    # Return the video data
+    return rows
 
+def split_scenes(data: list, save_path: str):
+    """
+    Given a list of data, split it to scenes and calculate the majority vote for the data of that scene 
+    """
+    # Open the writer to the csv file
     output = open(save_path, "w")
     output.write("License plate,Frame no.,Timestamp(seconds)\n")
-
-    # TODO: REMOVE THESE (below) and write the actual values in `output`
-    output.write("XS-NB-23,34,1.822\n")
-    # output.write("YOUR,STUFF,HERE\n")
-    # TODO: REMOVE THESE (above) and write the actual values in `output`
-
-    pass
-
-def iterate_dir(path):
-    directory_path = './dataset/CharactersDataset/TrainingSet/'
-
-    dataset = []
-
-    folders = [folder for folder in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, folder))]
-
-    for folder in folders:
-        folder_path = directory_path + '/' + folder
-        files = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
-
-        for file_name in files:
-            img = 255 - cv2.imread(folder_path + '/' + file_name, cv2.IMREAD_GRAYSCALE)
-            reshaped_img = reshape_img(img)
-
-            p = calculate_perimeter_area_vector(reshaped_img)
-
-            dataset.append(HeapEntry(0, p, reshaped_img, folder[0]))
-
-    for filename in os.scandir(path):
-        if filename.is_file():
-            print(filename.name)
-            frame = cv2.imread(filename.path)
-            plates = Localization.plate_detection(frame)
-            for plate in plates:
-                rotated = plate_rotation.rotation_pipeline(plate)
-                print(Recognize.segment_and_recognize(rotated, dataset))
-                
-    return plates
+    scene_outputs: list = []
+    scene_scores: list = []
+    scene_frame = data[0][2]
+    scene_time = data[0][3]
+    comp: str = data[0][1]
+    for row in data:
+        current_output: str = row[1]
+        if Helpers.hamming_distance(current_output, comp) > 2:
+            out = Recognize.majority_characterwise(scene_outputs, scene_scores)
+            to_write = out+','+str(scene_frame)+','+str(scene_time)+'\n'
+            output.write(to_write)
+            scene_outputs = []
+            scene_scores = []
+            scene_frame = row[2]
+            scene_time = row[3]
+        comp = current_output
+        scene_outputs.append(current_output)
+        scene_scores.append(row[0])
+    return

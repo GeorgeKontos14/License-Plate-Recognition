@@ -1,13 +1,10 @@
 import cv2
 import numpy as np
-import os
-
 import Helpers
-from kd_tree import KDTree
-from pre_processing_data import put_margin
-from character_recognition import give_label_lowest_score
 
-def segment_and_recognize(plate_image: np.ndarray, kd_tree: KDTree) -> list:
+from character_recognition import get_license_plate_number
+
+def segment_and_recognize(plate_image: np.ndarray, reference_characters: list):
 	"""
 	In this file, you will define your own segment_and_recognize function.
 	To do:
@@ -23,119 +20,93 @@ def segment_and_recognize(plate_image: np.ndarray, kd_tree: KDTree) -> list:
 	Hints:
 		You may need to define other functions.
 	"""
-	recognized_characters: list = []
-	chars: list = segment(plate_image)
-
-	for s in chars:
-		resized_img = cv2.resize(s, (30, 45), interpolation = cv2.INTER_LINEAR)
-		margined_img = put_margin(resized_img, 0, 0, 29, 44)
-		margined_img[margined_img >= 125] = 255
-		margined_img[margined_img < 125] = 0
-
-		recognized_characters.append(give_label_lowest_score(margined_img, kd_tree))
+	# chars, dashes = Segment.segment(plate_image, show=False)
+	# if chars is None:
+	# 	#print('None')
+	# 	return [], ''
 	
-	return recognized_characters
+	bounding_boxes: list = character_segmentation(plate_image)
 
-def segment(plate, out=None, binary = False):
-	"""
-	Given an image of a plate, it segments eacg character
-	"""
-	cleared = np.copy(plate)
-	if not binary:
-		gray = cv2.cvtColor(plate, cv2.COLOR_BGR2GRAY)
-		background, _ = Helpers.isodata_thresholding(gray)
-		#background, _ = Helpers.adaptive_thresholding(gray, 25, 30) - Does not work well; perhaps try better parameters
-		#Helpers.plotImage(background, "Background", cmapType="gray")
-		cleared = np.copy(background)
-	
-	if (out):
-		cv2.imwrite(out, cleared)
-		return
-	
-	height, length = cleared.shape
-	top = int(0.15*height)
-	bottom = int(0.85*height)
-	left = int(0.05*length)
-	right = int(0.95*length)
-	cleared = cleared[top:bottom, left:right]
-	# Helpers.plotImage(cleared, cmapType="gray")
-	characters = []
-	limits = []
-	i = 0
-	while i < cleared.shape[1]:
-		column = cleared[:, i]
-		# Discard columns without enough white pixels
-		if np.count_nonzero(column) <= 8:
+	return get_license_plate_number(reference_characters, bounding_boxes)
+
+def majority_characterwise(scene_outputs: list, scene_scores: list) -> str:
+	votes: list = [{} for i in range(6)]
+	#print(scene_outputs, scene_scores)
+	if len(scene_outputs) == 0:
+		return None
+	#print(scene_outputs)
+	for characters, scores in zip(scene_outputs, scene_scores):
+		i = 0
+		for score, character in zip(scores, characters):
+			if character in votes[i]:
+				votes[i][character] += score
+			else:
+				votes[i][character] = score 
+
 			i += 1
+	
+	return add_dashes(''.join(min(vote, key=vote.get) for vote in votes))
+
+
+
+def add_dashes(output: str) -> str:
+	"""
+	Adds dashes to a given license plate
+	"""
+	prev: bool = output[0].isdigit()
+	res: str = ''
+	res += output[0]
+	dashes: int = 0
+	for i in range(1, 6):
+		if dashes == 2:
+			res += output[i]
 			continue
-		# Find the area of the continuous white pixels
-		old_i = i
-		while np.count_nonzero(cleared[:, i:i+3]) > 10:
-			i += 1
-			if i == cleared.shape[1]:
-				break
-		j = old_i
-		while np.count_nonzero(cleared[:, j-3:j]) > 10:
-			j -= 1
-			if j == 0:
-				break
-		letter = cleared[:, j:i]
-		
-		# Check if the character is a dot or a dash;
-		# Dots appear in the beginning of the plates
-		# due to shadows. We check by examining how many 
-		# of the white pixels are near the middle.
-		if is_dash(letter):
-			continue
+		char: str = output[i]
+		cur: bool = char.isdigit()
+		if cur == prev:
+			res += char
+		elif cur != prev:
+			res += '-' + char
+			dashes += 1
+		prev = cur
+	if dashes == 1:
+		if res[4] == '-':
+			res = res[:2]+'-'+res[2:]
 		else:
-			if letter.shape[1] >= 3:
-				characters.append(letter)
-				limits.append((j, i))
-		i += 1
-	return merge_or_split(characters, limits, cleared)
-
-def is_dash(letter):
-	whites = np.count_nonzero(letter)
-	middle = int(letter.shape[0]/2)
-	upper_mid = middle+int(0.1*letter.shape[0])
-	lower_mid = middle-int(0.1*letter.shape[0])
-	upper = middle+int(0.2*letter.shape[0])
-	lower = middle-int(0.2*letter.shape[0])
-	return np.count_nonzero(letter[lower:middle]) > 0.7*whites or np.count_nonzero(letter[lower_mid:upper_mid]) > 0.7*whites or np.count_nonzero(letter[middle:upper]) > 0.7*whites
-
-def clear_top_bottom(binary):
-	height, length = binary.shape
-	top_white = i = 0
-	bottom_white = j = height-1
-	while i < j:
-		if np.count_nonzero(binary[i]) > 0.9*length:
-			top_white = i
-		if np.count_nonzero(binary[j]) > 0.9*length:
-			bottom_white = j
-		i += 1
-		j -= 1
-	return binary[top_white:bottom_white]
-
-def merge_or_split(characters, limits, plate):
-	avg = 0
-	res = []
-	for char in characters:
-		avg += char.shape[1]
-	avg = avg/len(characters)
-	i = 0
-	while i < len(characters):
-		char = characters[i]
-		if char.shape[1] > 1.6* avg:
-			mid = int(char.shape[1]/2)
-			res.append(char[:, :mid])
-			res.append(char[:, mid:])
-		elif char.shape[1] < 0.4* avg:
-			if i == len(characters)-1:
-				continue
-			next = characters[i+1]
-			if next.shape[1] < 0.4*avg:
-				res.append(plate[limits[i][0]:limits[i+1][1]])
-		else:
-			res.append(char)
-		i += 1
+			res = res[:5]+'-'+res[5:]
 	return res
+
+
+def character_segmentation(plate_image: np.ndarray) -> list:
+	plate: np.ndarray = cv2.cvtColor(plate_image, cv2.COLOR_BGR2GRAY)
+	plate = cv2.adaptiveThreshold(plate, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 21, 11)
+	plate = Helpers.clear_top_bottom(plate)
+	plate = np.array(plate, np.uint8)
+	contours, _ = cv2.findContours(plate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	if len(contours) == 0:
+		return []
+
+	mean_area: float = 0
+	plate_area: float = plate.shape[0] * plate.shape[1]
+	for contour in contours:
+		contour_area = cv2.contourArea(contour)
+		if contour_area < plate_area * 0.5:
+			mean_area += contour_area
+
+	mean_area /= len(contours)
+	threshold_area: float = mean_area * 0.5
+
+	bounding_boxes: list = []
+
+	for contour in contours:
+		contour_area: float = cv2.contourArea(contour)
+		if contour_area >= plate_area * 0.7:
+			continue
+
+		if contour_area > threshold_area:
+			x, y, w, h = cv2.boundingRect(contour)
+			bounding_boxes.append((plate[y:y+h, x:x+w], x))
+	
+	bounding_boxes.sort(key=lambda x: x[1])
+
+	return bounding_boxes

@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-from kd_tree import KDTree
 
 def difference_score(img: np.ndarray, reference_character: np.ndarray) -> np.array:
     """ 
@@ -10,8 +9,8 @@ def difference_score(img: np.ndarray, reference_character: np.ndarray) -> np.arr
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
             if (
-                (img[i, j] == 0 and reference_character[i, j] > 0) or
-                (img[i, j] > 0 and reference_character[i, j] == 0)
+                (img[i, j] == 0 and reference_character[i, j] > 125) or
+                (img[i, j] > 0 and reference_character[i, j] < 125)
             ):
                 score += 1
     
@@ -21,32 +20,39 @@ def give_label_lowest_score(img: np.ndarray, reference_characters: list) -> str:
     """
     """
     min_score: int = np.inf
-    min_score_char: int = 0
+    min_score_char: str = 0
 
-    for entry in reference_characters:
-        score = difference_score(img, entry.img)
+    img[img < 125] = 0
+    img[img >= 125] = 255 
+
+    for char in reference_characters:
+        reference_character = cv2.resize(char[0], (img.shape[1], img.shape[0]))
+        reference_character = cv2.cvtColor(reference_character, cv2.COLOR_BGR2GRAY)
+        reference_character[reference_character < 125] = 0
+        reference_character[reference_character >= 125] = 255
+
+        xor_diff = cv2.bitwise_xor(img, reference_character)
+        score = np.sum(xor_diff) / (img.shape[0] * img.shape[1] * 255.0)
+
+
         if score < min_score:
             min_score = score 
-            min_score_char = entry.label
+            min_score_char = char[1]
     
-    return min_score_char
+    return min_score, min_score_char
 
-def calculate_perimeter_area_vector(img: np.ndarray) -> np.ndarray:
-    """
-    """
-    binary_image: np.ndarray = (img != 0).astype(np.uint8)
-    contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    perimeter: float = cv2.arcLength(contours[0], closed=True)
-    area: float = cv2.contourArea(contours[0])
+def recognise_character(reference_characters: list, img: np.ndarray):
+    return give_label_lowest_score(img, reference_characters)
 
-    return np.array([perimeter, area])
+def get_license_plate_number(reference_characters: list, chars: list) -> str:
+    plate_num: str = ''
+    xor_scores: list = []
 
-def recognise_character(kd_tree: KDTree, img: np.ndarray, k: int):
-    """
-    """
-    perimeter_area_vector: np.ndarray = calculate_perimeter_area_vector(img)
-    k_nearest_points: list = kd_tree.get_k_nearest_points(perimeter_area_vector, k)
-    pred: str = give_label_lowest_score(img, k_nearest_points)
+    if len(chars) == 6:
+        for char in chars:
+            score, pred_char = give_label_lowest_score(char[0], reference_characters)
+            plate_num += pred_char
+            xor_scores.append(score)
 
-    return pred
+    return xor_scores, plate_num
+
